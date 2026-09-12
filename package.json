@@ -1,0 +1,33 @@
+{
+  "name": "mobina-self",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/bot.js",
+    "dev": "tsx src/bot.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongodb": "^7.6.0",
+    "pdfkit": "^0.20.2",
+    "telegraf": "^4.16.3",
+    "teleproto": "^1.229.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.0",
+    "@types/pdfkit": "^0.17.6",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
+

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b0b1a">
+<title>مبینا | مینی‌اپ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#0b0b1a; --bg2:#1a1030; --bg3:#2b0f4a;
+    --card:rgba(255,255,255,.06); --card-border:rgba(255,255,255,.09);
+    --text:#f5f5fa; --muted:#9a9ab5;
+    --accent1:#8b5cf6; --accent2:#ec4899; --accent3:#22d3ee;
+    --gold:#fbbf24; --silver:#cbd5e1; --bronze:#fb923c;
+    --good:#22c55e; --bad:#ef4444;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    font-family:'Vazirmatn',system-ui,sans-serif;
+    background:
+      radial-gradient(1200px 700px at 10% 0%, rgba(139,92,246,.35), transparent 55%),
+      radial-gradient(1000px 600px at 90% 15%, rgba(236,72,153,.28), transparent 55%),
+      radial-gradient(900px 700px at 50% 100%, rgba(34,211,238,.20), transparent 55%),
+      linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg3));
+    color:var(--text);
+    min-height:100vh; padding-bottom:88px; overflow-x:hidden;
+    animation:bgShift 12s ease-in-out infinite alternate;
+  }
+  @keyframes bgShift{
+    0%{filter:hue-rotate(0deg)}
+    100%{filter:hue-rotate(12deg)}
+  }
+
+  .app{max-width:520px;margin:0 auto;padding:18px 14px 0}
+
+  /* Header */
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;animation:fadeUp .5s ease both}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+  .brand .logo{
+    width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:20px;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    box-shadow:0 8px 24px rgba(139,92,246,.45);
+  }
+  .brand span{
+    background:linear-gradient(90deg,#fff,#e9d5ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  /* Tabs content */
+  .tab{display:none;animation:fadeUp .35s ease both}
+  .tab.active{display:block}
+
+  /* Profile */
+  .profile-hero{
+    position:relative;border-radius:24px;padding:22px 18px;
+    background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(236,72,153,.18));
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 14px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);
+    overflow:hidden;margin-bottom:14px;
+  }
+  .profile-hero::before{
+    content:"";position:absolute;inset:-40% -20% auto auto;width:320px;height:320px;
+    background:radial-gradient(circle,rgba(236,72,153,.5),transparent 60%);
+    filter:blur(30px);pointer-events:none;
+  }
+  .hero-row{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+  .avatar{
+    width:64px;height:64px;border-radius:20px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;
+    box-shadow:0 10px 24px rgba(139,92,246,.5);
+  }
+  .who{flex:1;min-width:0}
+  .who h1{margin:0;font-size:18px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who p{margin:3px 0 0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lvl-chip{
+    display:inline-flex;align-items:center;gap:6px;margin-top:8px;
+    padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700;
+    background:linear-gradient(135deg,rgba(251,191,36,.25),rgba(236,72,153,.25));
+    border:1px solid rgba(251,191,36,.35);color:#fde68a;
+  }
+
+  .xp-wrap{margin-top:16px;position:relative;z-index:1}
+  .xp-info{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .xp-bar{
+    height:12px;border-radius:999px;background:rgba(0,0,0,.35);overflow:hidden;
+    border:1px solid rgba(255,255,255,.08);position:relative;
+  }
+  .xp-bar > div{
+    height:100%;width:0%;border-radius:999px;
+    background:linear-gradient(90deg,#22d3ee,#8b5cf6 55%,#ec4899);
+    transition:width 1s cubic-bezier(.2,.8,.2,1);
+    box-shadow:0 0 20px rgba(139,92,246,.6);position:relative;
+  }
+  .xp-bar > div::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);
+    animation:shine 2.4s linear infinite;
+  }
+  @keyframes shine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+  /* Stat cards */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+  .card{
+    background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);
+    padding:14px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.18);
+    transition:transform .2s ease,border-color .2s ease;
+  }
+  .card:active{transform:scale(.98)}
+  .card .k{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .card .v{font-size:22px;font-weight:800;letter-spacing:-.4px}
+  .card.big .v{font-size:26px}
+  .card .sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+  .coins-card{
+    grid-column:1/-1;
+    background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(236,72,153,.14));
+    border:1px solid rgba(251,191,36,.28);
+  }
+  .coins-card .v{
+    background:linear-gradient(90deg,#fde68a,#fbbf24,#f59e0b);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+
+  /* Leaderboard */
+  .lb-tabs{
+    display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:12px;
+    scrollbar-width:none;
+  }
+  .lb-tabs::-webkit-scrollbar{display:none}
+  .lb-tab{
+    flex:0 0 auto;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+    color:var(--muted);cursor:pointer;transition:all .2s ease;white-space:nowrap;
+  }
+  .lb-tab.active{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;border-color:transparent;
+    box-shadow:0 8px 20px rgba(139,92,246,.45);
+  }
+
+  .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;align-items:end}
+  .pod{
+    border-radius:18px;padding:12px 8px;text-align:center;
+    background:var(--card);border:1px solid var(--card-border);
+    backdrop-filter:blur(14px);
+    position:relative;overflow:hidden;
+    animation:fadeUp .5s ease both;
+  }
+  .pod .medal{font-size:26px;line-height:1}
+  .pod .nm{
+    font-size:12px;font-weight:700;margin:6px 0 2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .pod .val{font-size:14px;font-weight:800;color:#fde68a}
+  .pod.p1{
+    grid-column:2;padding-top:22px;
+    background:linear-gradient(180deg,rgba(251,191,36,.22),rgba(251,191,36,.05));
+    border-color:rgba(251,191,36,.4);
+    box-shadow:0 12px 32px rgba(251,191,36,.25);
+    transform:translateY(-6px);
+  }
+  .pod.p2{
+    grid-column:1;
+    background:linear-gradient(180deg,rgba(203,213,225,.15),rgba(203,213,225,.03));
+    border-color:rgba(203,213,225,.3);
+  }
+  .pod.p3{
+    grid-column:3;
+    background:linear-gradient(180deg,rgba(251,146,60,.15),rgba(251,146,60,.03));
+    border-color:rgba(251,146,60,.3);
+  }
+
+  .lb-list{display:flex;flex-direction:column;gap:8px}
+  .lb-row{
+    display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;
+    background:var(--card);border:1px solid var(--card-border);
+    backdrop-filter:blur(12px);
+    animation:fadeUp .4s ease both;
+  }
+  .lb-row.me{
+    background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(236,72,153,.14));
+    border-color:rgba(139,92,246,.5);
+    box-shadow:0 8px 24px rgba(139,92,246,.25);
+  }
+  .lb-rank{
+    width:30px;height:30px;border-radius:10px;display:grid;place-items:center;
+    font-size:13px;font-weight:800;
+    background:rgba(255,255,255,.06);color:var(--muted);flex-shrink:0;
+  }
+  .lb-row.me .lb-rank{background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff}
+  .lb-info{flex:1;min-width:0}
+  .lb-info .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-info .meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .lb-val{font-weight:800;font-size:14px;color:#fde68a;flex-shrink:0}
+
+  /* Shop */
+  .shop-hero{
+    border-radius:22px;padding:20px;margin-bottom:14px;
+    background:linear-gradient(135deg,rgba(34,211,238,.18),rgba(139,92,246,.20));
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 12px 32px rgba(0,0,0,.3);
+  }
+  .shop-hero h2{margin:0 0 4px;font-size:17px}
+  .shop-hero p{margin:0;font-size:12.5px;color:var(--muted)}
+
+  .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+  .chip{
+    padding:11px 8px;border-radius:14px;text-align:center;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);
+    font-weight:700;font-size:13px;transition:all .2s ease;
+  }
+  .chip:active,.chip.on{
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    color:#fff;border-color:transparent;
+    box-shadow:0 8px 20px rgba(139,92,246,.4);
+    transform:translateY(-2px);
+  }
+
+  .field{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.10);
+    border-radius:16px;padding:12px 14px;margin-bottom:10px;
+  }
+  .field input{
+    flex:1;background:transparent;border:0;outline:0;
+    color:#fff;font-size:18px;font-weight:800;font-family:inherit;
+    text-align:left;direction:ltr;
+  }
+  .field .unit{font-size:13px;color:var(--muted);font-weight:700}
+
+  .toman-preview{
+    border-radius:18px;padding:14px 16px;margin:6px 0 16px;
+    background:linear-gradient(135deg,rgba(251,191,36,.14),rgba(236,72,153,.10));
+    border:1px solid rgba(251,191,36,.25);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .toman-preview .k{font-size:12.5px;color:var(--muted)}
+  .toman-preview .v{font-size:18px;font-weight:800;color:#fde68a}
+
+  .btn{
+    width:100%;border:0;border-radius:18px;padding:16px;font-family:inherit;
+    font-size:16px;font-weight:800;color:#fff;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+    box-shadow:0 12px 32px rgba(139,92,246,.45);
+    transition:transform .15s ease,box-shadow .2s ease;
+  }
+  .btn:active{transform:scale(.97);box-shadow:0 6px 18px rgba(139,92,246,.4)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+
+  /* Bottom nav */
+  .nav{
+    position:fixed;bottom:0;left:0;right:0;z-index:50;
+    padding:10px 14px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(11,11,26,0),rgba(11,11,26,.9) 40%);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    display:flex;gap:8px;justify-content:center;
+  }
+  .nav-inner{
+    max-width:520px;width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+    background:rgba(20,18,38,.75);border:1px solid rgba(255,255,255,.08);
+    border-radius:22px;padding:6px;
+    box-shadow:0 12px 40px rgba(0,0,0,.55);
+  }
+  .nav-btn{
+    padding:11px 6px;border-radius:16px;border:0;background:transparent;
+    color:var(--muted);font-family:inherit;font-weight:700;font-size:12px;
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;
+    transition:all .2s ease;
+  }
+  .nav-btn .ic{font-size:19px;line-height:1}
+  .nav-btn.active{
+    color:#fff;
+    background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(236,72,153,.28));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  }
+
+  /* Toast */
+  .toast{
+    position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(30px);
+    background:rgba(20,18,38,.95);border:1px solid rgba(255,255,255,.12);
+    color:#fff;padding:12px 18px;border-radius:14px;font-size:13.5px;font-weight:700;
+    opacity:0;pointer-events:none;transition:all .35s ease;z-index:100;max-width:88vw;text-align:center;
+    box-shadow:0 16px 40px rgba(0,0,0,.55);white-space:pre-line;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Skeleton */
+  .skel{
+    height:60px;border-radius:16px;margin-bottom:8px;
+    background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.10),rgba(255,255,255,.05));
+    background-size:200% 100%;animation:skel 1.4s linear infinite;
+  }
+  @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px}
+  .empty .em{font-size:44px;margin-bottom:8px}
+
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top">
+    <div class="brand">
+      <div class="logo">✨</div>
+      <span>مبینا</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">مینی‌اپ</div>
+  </div>
+
+  <!-- PROFILE TAB -->
+  <section class="tab active" id="tab-profile">
+    <div id="profile-skel">
+      <div class="skel" style="height:150px"></div>
+      <div class="grid">
+        <div class="skel"></div><div class="skel"></div>
+        <div class="skel"></div><div class="skel"></div>
+      </div>
+    </div>
+    <div id="profile-content" style="display:none"></div>
+  </section>
+
+  <!-- LEADERBOARD TAB -->
+  <section class="tab" id="tab-lb">
+    <div class="lb-tabs" id="lb-tabs"></div>
+    <div id="lb-body">
+      <div class="skel" style="height:120px"></div>
+      <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+    </div>
+  </section>
+
+  <!-- SHOP TAB -->
+  <section class="tab" id="tab-shop">
+    <div class="shop-hero">
+      <h2>💰 شارژ موجودی</h2>
+      <p>مقدار سکه‌ای که می‌خوای بخری رو بزن، معادل تومنش خودکار حساب می‌شه</p>
+    </div>
+
+    <div class="quick" id="quick-coins"></div>
+
+    <div class="field">
+      <input id="coin-input" type="number" inputmode="numeric" min="100" step="100" placeholder="مقدار سکه" />
+      <span class="unit">MBN</span>
+    </div>
+
+    <div class="toman-preview">
+      <span class="k">💵 معادل تومنی</span>
+      <span class="v" id="toman-preview">۰ تومان</span>
+    </div>
+
+    <button class="btn" id="pay-btn" disabled>💳 پرداخت</button>
+  </section>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" data-tab="profile"><span class="ic">👤</span>پروفایل</button>
+    <button class="nav-btn" data-tab="lb"><span class="ic">🏆</span>لیدربورد</button>
+    <button class="nav-btn" data-tab="shop"><span class="ic">💰</span>شارژ</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const tg = window.Telegram?.WebApp;
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor?.("#0b0b1a");
+    tg.setBackgroundColor?.("#0b0b1a");
+  }
+
+  const INIT_DATA = tg?.initData || "";
+  const HEADERS = { "X-Init-Data": INIT_DATA };
+
+  const COINS_PER_1000 = 20000; // همون مقداری که توی bot.ts هست
+  const toToman = (c) => Math.floor((c / 1000) * COINS_PER_1000);
+
+  const fmt = (n) => new Intl.NumberFormat("fa-IR").format(Math.floor(n || 0));
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[m]));
+
+  // ---------- Toast ----------
+  const toastEl = document.getElementById("toast");
+  let toastTimer;
+  function toast(text, ms = 2400) {
+    toastEl.textContent = text;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
+  }
+
+  // ---------- Navigation ----------
+  const tabButtons = document.querySelectorAll(".nav-btn");
+  const tabs = document.querySelectorAll(".tab");
+  tabButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      tabButtons.forEach((b) => b.classList.toggle("active", b === btn));
+      const id = "tab-" + btn.dataset.tab;
+      tabs.forEach((t) => t.classList.toggle("active", t.id === id));
+      if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged?.();
+      if (btn.dataset.tab === "lb") loadLeaderboard(currentLB);
+      if (btn.dataset.tab === "profile") loadProfile();
+    });
+  });
+
+  // ---------- Profile ----------
+  async function loadProfile() {
+    const skel = document.getElementById("profile-skel");
+    const box = document.getElementById("profile-content");
+    skel.style.display = "";
+    box.style.display = "none";
+
+    try {
+      const res = await fetch("/api/me", { headers: HEADERS });
+      if (!res.ok) throw new Error("bad");
+      const u = await res.json();
+      renderProfile(u);
+      skel.style.display = "none";
+      box.style.display = "";
+    } catch {
+      skel.style.display = "none";
+      box.style.display = "";
+      box.innerHTML = `<div class="empty"><div class="em">😵</div>پروفایلت لود نشد. یه بار دیگه امتحان کن</div>`;
+    }
+  }
+
+  function renderProfile(u) {
+    const box = document.getElementById("profile-content");
+    const initial = (u.name || "?").trim().charAt(0).toUpperCase();
+    const rank = u.levelName || "—";
+
+    box.innerHTML = `
+      <div class="profile-hero">
+        <div class="hero-row">
+          <div class="avatar">${esc(initial)}</div>
+          <div class="who">
+            <h1>${esc(u.name || "کاربر")}</h1>
+            <p>${u.username ? "@" + esc(u.username) : "شناسه: " + u.id}</p>
+            <div class="lvl-chip">⭐ لول ${fmt(u.level)} • ${esc(rank)}</div>
+          </div>
+        </div>
+        <div class="xp-wrap">
+          <div class="xp-info">
+            <span>✨ XP: ${fmt(u.xpCurrent)} / ${fmt(u.xpNeeded)}</span>
+            <span>${fmt(u.xpPct)}٪</span>
+          </div>
+          <div class="xp-bar"><div id="xp-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card coins-card big">
+          <div class="k">🪙 موجودی سکه</div>
+          <div class="v">${fmt(u.coins)} <span style="font-size:13px;font-weight:700;color:#fff8">MBN</span></div>
+          <div class="sub">💵 معادل ${fmt(u.coinsToman)} تومان</div>
+        </div>
+
+        <div class="card">
+          <div class="k">🎮 کل بازی‌ها</div>
+          <div class="v">${fmt(u.stats.games)}</div>
+        </div>
+        <div class="card">
+          <div class="k">🏆 بردها</div>
+          <div class="v" style="color:#22c55e">${fmt(u.stats.wins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">💀 باخت‌ها</div>
+          <div class="v" style="color:#ef4444">${fmt(u.stats.losses)}</div>
+        </div>
+        <div class="card">
+          <div class="k">🔥 استریک فعلی</div>
+          <div class="v" style="color:#fb923c">${fmt(u.stats.winStreak)}</div>
+          <div class="sub">رکورد: ${fmt(u.stats.bestStreak)}</div>
+        </div>
+
+        <div class="card">
+          <div class="k">🎲 شانس</div>
+          <div class="v">${fmt(u.stats.coinflipWins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">✊ RPS</div>
+          <div class="v">${fmt(u.stats.rpsWins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">❌⭕ دوز</div>
+          <div class="v">${fmt(u.stats.tttWins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">🎲 تاس</div>
+          <div class="v">${fmt(u.stats.diceWins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">🎯 دارت</div>
+          <div class="v">${fmt(u.stats.dartWins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">🎰 کازینو</div>
+          <div class="v">${fmt(u.stats.casinoWins)}</div>
+        </div>
+        <div class="card">
+          <div class="k">🎯 حدس عدد</div>
+          <div class="v">${fmt(u.stats.guessWins)}</div>
+        </div>
+      </div>
+    `;
+
+    // Animate xp bar
+    requestAnimationFrame(() => {
+      const fill = document.getElementById("xp-fill");
+      if (fill) fill.style.width = Math.min(100, u.xpPct) + "%";
+    });
+  }
+
+  // ---------- Leaderboard ----------
+  const LB_TABS = [
+    { key: "xp",      label: "⭐ لول و XP",    unit: "XP" },
+    { key: "coins",   label: "💰 پولدارها",   unit: "MBN" },
+    { key: "coinflip",label: "🎲 شانس",       unit: "برد" },
+    { key: "rps",     label: "✊ RPS",         unit: "برد" },
+    { key: "ttt",     label: "❌⭕ دوز",       unit: "برد" },
+    { key: "dice",    label: "🎲 تاس",        unit: "برد" },
+    { key: "dart",    label: "🎯 دارت",       unit: "برد" },
+    { key: "casino",  label: "🎰 کازینو",     unit: "برد" },
+    { key: "guess",   label: "🎯 حدس عدد",    unit: "برد" }
+  ];
+  let currentLB = "xp";
+
+  function buildLBTabs() {
+    const wrap = document.getElementById("lb-tabs");
+    wrap.innerHTML = LB_TABS.map(t =>
+      `<button class="lb-tab${t.key===currentLB?" active":""}" data-k="${t.key}">${t.label}</button>`
+    ).join("");
+    wrap.querySelectorAll(".lb-tab").forEach(b => {
+      b.addEventListener("click", () => {
+        currentLB = b.dataset.k;
+        wrap.querySelectorAll(".lb-tab").forEach(x => x.classList.toggle("active", x === b));
+        loadLeaderboard(currentLB);
+      });
+    });
+  }
+
+  async function loadLeaderboard(type) {
+    const box = document.getElementById("lb-body");
+    box.innerHTML = `<div class="skel" style="height:120px"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>`;
+
+    try {
+      const res = await fetch(`/api/leaderboard/${type}`);
+      if (!res.ok) throw new Error("bad");
+      const data = await res.json();
+      renderLB(data, type);
+    } catch {
+      box.innerHTML = `<div class="empty"><div class="em">😵</div>لیدربورد لود نشد</div>`;
+    }
+  }
+
+  function renderLB(data, type) {
+    const box = document.getElementById("lb-body");
+    const unit = LB_TABS.find(t => t.key === type)?.unit || "";
+    const list = data.list || [];
+
+    if (!list.length) {
+      box.innerHTML = `<div class="empty"><div class="em">🏜️</div>هنوز کسی رکوردی ثبت نکرده</div>`;
+      return;
+    }
+
+    const medals = ["🥇","🥈","🥉"];
+    const myId = tg?.initDataUnsafe?.user?.id;
+
+    let html = "";
+    const top3 = list.slice(0, 3);
+    if (top3.length >= 1) {
+      // Podium: order = [2nd, 1st, 3rd]
+      const p1 = top3[0], p2 = top3[1], p3 = top3[2];
+      html += `<div class="podium">`;
+      html += p2 ? `
+        <div class="pod p2">
+          <div class="medal">🥈</div>
+          <div class="nm">${esc(p2.name)}</div>
+          <div class="val">${fmt(p2.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
+        </div>` : `<div></div>`;
+      html += p1 ? `
+        <div class="pod p1">
+          <div class="medal">🥇</div>
+          <div class="nm">${esc(p1.name)}</div>
+          <div class="val">${fmt(p1.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
+        </div>` : `<div></div>`;
+      html += p3 ? `
+        <div class="pod p3">
+          <div class="medal">🥉</div>
+          <div class="nm">${esc(p3.name)}</div>
+          <div class="val">${fmt(p3.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
+        </div>` : `<div></div>`;
+      html += `</div>`;
+    }
+
+    html += `<div class="lb-list">`;
+    list.forEach((row) => {
+      const isMe = myId && row.id === myId;
+      const rankText = row.rank <= 3 ? medals[row.rank - 1] : row.rank;
+      html += `
+        <div class="lb-row${isMe ? " me" : ""}">
+          <div class="lb-rank">${rankText}</div>
+          <div class="lb-info">
+            <div class="nm">${esc(row.name)}${isMe ? " (تو)" : ""}</div>
+            <div class="meta">⭐ لول ${fmt(row.level)} • ${esc(row.levelName || "")}</div>
+          </div>
+          <div class="lb-val">${fmt(row.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
+        </div>
+      `;
+    });
+    html += `</div>`;
+
+    box.innerHTML = html;
+  }
+
+  // ---------- Shop ----------
+  const quickWrap = document.getElementById("quick-coins");
+  const coinInput = document.getElementById("coin-input");
+  const tomanPrev = document.getElementById("toman-preview");
+  const payBtn = document.getElementById("pay-btn");
+  const QUICK = [100, 500, 1000, 5000];
+
+  quickWrap.innerHTML = QUICK.map(v =>
+    `<div class="chip" data-v="${v}">${fmt(v)}</div>`
+  ).join("");
+
+  quickWrap.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const v = Number(chip.dataset.v);
+      coinInput.value = v;
+      quickWrap.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c === chip));
+      updateShopPreview();
+      if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged?.();
+    });
+  });
+
+  function updateShopPreview() {
+    const coins = Number(coinInput.value) || 0;
+    const valid = Number.isSafeInteger(coins) && coins >= 100;
+    tomanPrev.textContent = fmt(toToman(coins)) + " تومان";
+    payBtn.disabled = !valid;
+  }
+
+  coinInput.addEventListener("input", () => {
+    quickWrap.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", Number(c.dataset.v) === Number(coinInput.value)));
+    updateShopPreview();
+  });
+  updateShopPreview();
+
+  payBtn.addEventListener("click", async () => {
+    const coins = Number(coinInput.value);
+    if (!Number.isSafeInteger(coins) || coins < 100) {
+      return toast("حداقل ۱۰۰ سکه می‌تونی بخری 😉");
+    }
+    payBtn.disabled = true;
+    const old = payBtn.textContent;
+    payBtn.textContent = "⏳ در حال ارسال...";
+    try {
+      const res = await fetch("/api/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...HEADERS },
+        body: JSON.stringify({ coins }),
+      });
+      const data = await res.json();
+      if (data?.message) toast(data.message, 3000);
+      else toast("یه مشکلی پیش اومد 😅");
+    } catch {
+      toast("ارتباط با سرور برقرار نشد 😕");
+    } finally {
+      payBtn.textContent = old;
+      payBtn.disabled = false;
+    }
+  });
+
+  // ---------- Init ----------
+  buildLBTabs();
+  loadProfile();
+})();
+</script>
+</body>
+</html>

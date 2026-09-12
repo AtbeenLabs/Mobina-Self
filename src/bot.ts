@@ -1664,17 +1664,31 @@ bot.on(message("new_chat_members"), async ctx => {
 
     for (const member of ctx.message.new_chat_members) {
         if (member.is_bot) continue;
-        const { user, created } = getUser(member);
-        if (!created) continue;
 
-        await sendStickerSafe(ctx, "welcome");
-        await ctx.reply(
-            `🎉 ${mention(member)} <b>به جمع‌مون خوش اومدی!</b> 🫶\n\n` +
-            `🪙 هدیهٔ شروع: <b>+${copyNumber(STARTING_COINS)} MBN</b>\n` +
-            `💰 موجودی: <b>${copyNumber(user.coins)} MBN</b>\n\n` +
-            `😎 حالا دیگه رسماً آماده‌ای برای بازی و رقابت!`,
-            { parse_mode: "HTML" }
-        );
+        try {
+            const { user, created } = getUser(member);
+
+            await sendStickerSafe(ctx, "welcome");
+
+            if (created) {
+                await ctx.reply(
+                    `🎉 ${mention(member)} <b>به جمع‌مون خوش اومدی!</b> 🫶\n\n` +
+                    `🪙 هدیهٔ شروع: <b>+${copyNumber(STARTING_COINS)} MBN</b>\n` +
+                    `💰 موجودی: <b>${copyNumber(user.coins)} MBN</b>\n\n` +
+                    `😎 حالا دیگه رسماً آماده‌ای برای بازی و رقابت!`,
+                    { parse_mode: "HTML" }
+                );
+            } else {
+                await ctx.reply(
+                    `🎉 ${mention(member)} <b>خوش اومدی!</b> 🫶\n\n` +
+                    `💰 موجودیت: <b>${copyNumber(user.coins)} MBN</b>\n` +
+                    `😎 بزن بریم بازی!`,
+                    { parse_mode: "HTML" }
+                );
+            }
+        } catch (error) {
+            console.error("welcome handler error:", error);
+        }
     }
 });
 

@@ -4142,8 +4142,7 @@ webApp.use((req, res, next) => {
 webApp.use(express.static(path.join(__dirname, "..", "webapp")));
 
 webApp.get("/api/me", authMiddleware, (req: any, res) => {
-    const user = getStoredUser(req.tgUser.id);
-    if (!user) return res.status(404).json({ error: "not_found" });
+    const { user } = getUser(req.tgUser);
     res.json(publicProfile(user));
 });
 

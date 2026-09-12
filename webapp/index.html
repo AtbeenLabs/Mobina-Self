@@ -37,7 +37,6 @@
 
   .app{max-width:520px;margin:0 auto;padding:18px 14px 0}
 
-  /* Header */
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;animation:fadeUp .5s ease both}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
   .brand .logo{
@@ -50,7 +49,6 @@
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
 
-  /* Tabs content */
   .tab{display:none;animation:fadeUp .35s ease both}
   .tab.active{display:block}
 
@@ -103,7 +101,6 @@
   }
   @keyframes shine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 
-  /* Stat cards */
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
   .card{
     background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);
@@ -243,15 +240,155 @@
   .toman-preview .k{font-size:12.5px;color:var(--muted)}
   .toman-preview .v{font-size:18px;font-weight:800;color:#fde68a}
 
-  .btn{
-    width:100%;border:0;border-radius:18px;padding:16px;font-family:inherit;
-    font-size:16px;font-weight:800;color:#fff;cursor:pointer;
-    background:linear-gradient(135deg,var(--accent1),var(--accent2));
-    box-shadow:0 12px 32px rgba(139,92,246,.45);
-    transition:transform .15s ease,box-shadow .2s ease;
+  /* 🏦 Mellat Card */
+  .mellat-wrap{
+    margin:6px 0 16px;
+    perspective:1000px;
+    animation:fadeUp .5s ease both;
   }
-  .btn:active{transform:scale(.97);box-shadow:0 6px 18px rgba(139,92,246,.4)}
-  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .mellat-card{
+    position:relative;
+    width:100%;
+    aspect-ratio:1.586 / 1;
+    border-radius:18px;
+    padding:20px 22px;
+    color:#fff;
+    background:
+      radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,.14), transparent 55%),
+      radial-gradient(120% 120% at 100% 100%, rgba(255,255,255,.10), transparent 50%),
+      linear-gradient(135deg, #8a0f1e 0%, #a91528 45%, #6c0a17 100%);
+    box-shadow:
+      0 20px 50px rgba(140,15,30,.45),
+      0 8px 20px rgba(0,0,0,.4),
+      inset 0 1px 0 rgba(255,255,255,.15),
+      inset 0 -1px 0 rgba(0,0,0,.25);
+    overflow:hidden;
+    font-family:'Vazirmatn',system-ui,sans-serif;
+    transition:transform .6s cubic-bezier(.2,.8,.2,1);
+    transform-style:preserve-3d;
+  }
+  .mellat-card::before{
+    content:"";
+    position:absolute;inset:0;
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 6px);
+    pointer-events:none;
+    mix-blend-mode:overlay;
+  }
+  .mellat-card::after{
+    content:"";
+    position:absolute;top:-40%;left:-30%;
+    width:80%;height:180%;
+    background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.18) 50%,transparent 60%);
+    transform:rotate(8deg);
+    animation:cardShine 4.5s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes cardShine{
+    0%,60%{transform:translateX(-120%) rotate(8deg)}
+    80%,100%{transform:translateX(220%) rotate(8deg)}
+  }
+  .mellat-top{
+    display:flex;align-items:flex-start;justify-content:space-between;
+    position:relative;z-index:2;
+  }
+  .mellat-logo{
+    display:flex;align-items:center;gap:8px;
+    font-weight:800;font-size:15px;letter-spacing:-.3px;
+  }
+  .mellat-logo .flame{
+    width:26px;height:26px;border-radius:8px;
+    display:grid;place-items:center;
+    background:linear-gradient(135deg,#ffd66b,#f0a437);
+    color:#7a0a18;font-weight:900;font-size:15px;
+    box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .mellat-bank{
+    text-align:left;font-size:11px;font-weight:700;
+    color:rgba(255,255,255,.85);
+    line-height:1.5;
+  }
+  .mellat-bank small{
+    display:block;font-size:9.5px;color:rgba(255,255,255,.6);font-weight:500;
+  }
+
+  .mellat-chip{
+    position:relative;z-index:2;
+    width:46px;height:36px;margin:14px 0 10px;
+    border-radius:8px;
+    background:
+      linear-gradient(135deg,#e9d9a4 0%, #c9b26a 45%, #a68e4a 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(0,0,0,.25),
+      inset 0 1px 0 rgba(255,255,255,.7),
+      0 2px 6px rgba(0,0,0,.3);
+    position:relative;
+    overflow:hidden;
+  }
+  .mellat-chip::before{
+    content:"";position:absolute;inset:6px;
+    background:
+      linear-gradient(90deg, transparent 45%, rgba(0,0,0,.28) 45%, rgba(0,0,0,.28) 55%, transparent 55%),
+      linear-gradient(0deg,  transparent 40%, rgba(0,0,0,.28) 40%, rgba(0,0,0,.28) 60%, transparent 60%);
+    border-radius:3px;
+  }
+
+  .mellat-number{
+    position:relative;z-index:2;
+    display:flex;justify-content:space-between;gap:12px;
+    font-size:20px;font-weight:800;letter-spacing:.5px;
+    direction:ltr;
+    text-shadow:0 2px 4px rgba(0,0,0,.45);
+    font-variant-numeric:tabular-nums;
+    margin-bottom:16px;
+  }
+  .mellat-number span{
+    display:inline-block;
+  }
+
+  .mellat-bottom{
+    position:relative;z-index:2;
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:12px;
+  }
+  .mellat-bottom .cell{
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .mellat-bottom .cell .label{
+    font-size:9.5px;color:rgba(255,255,255,.7);font-weight:600;
+    letter-spacing:.5px;
+  }
+  .mellat-bottom .cell .val{
+    font-size:14px;font-weight:800;direction:ltr;
+    text-shadow:0 1px 3px rgba(0,0,0,.4);
+    font-variant-numeric:tabular-nums;
+  }
+  .mellat-bottom .cell.right{text-align:right}
+  .mellat-bottom .cell.left{text-align:left}
+  .mellat-bottom .cell.center{text-align:center;flex:1}
+
+  .card-owner-note{
+    margin-top:10px;text-align:center;
+    font-size:12.5px;color:var(--muted);line-height:1.7;
+  }
+  .card-owner-note b{color:#fde68a;font-weight:800}
+  .card-owner-note a{
+    color:#a78bfa;text-decoration:none;font-weight:800;
+    border-bottom:1px dashed rgba(167,139,250,.5);
+  }
+  .card-owner-note a:active{color:#c4b5fd}
+
+  .cta-btn{
+    width:100%;border:0;border-radius:18px;padding:16px;
+    font-family:inherit;font-size:15px;font-weight:800;color:#fff;
+    cursor:pointer;margin-top:14px;
+    background:linear-gradient(135deg,#8b5cf6,#ec4899);
+    box-shadow:0 12px 32px rgba(139,92,246,.4);
+    transition:transform .15s ease;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    text-decoration:none;
+  }
+  .cta-btn:active{transform:scale(.97)}
 
   /* Bottom nav */
   .nav{
@@ -290,7 +427,6 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* Skeleton */
   .skel{
     height:60px;border-radius:16px;margin-bottom:8px;
     background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.10),rgba(255,255,255,.05));
@@ -305,6 +441,15 @@
     from{opacity:0;transform:translateY(10px)}
     to{opacity:1;transform:translateY(0)}
   }
+
+  /* Reveal toggle */
+  .reveal-btn{
+    display:inline-flex;align-items:center;gap:4px;
+    background:none;border:0;color:var(--muted);
+    font-size:11px;font-family:inherit;cursor:pointer;
+    padding:2px 4px;margin-top:2px;
+  }
+  .reveal-btn:active{color:#fff}
 </style>
 </head>
 <body>
@@ -318,7 +463,6 @@
     <div style="font-size:12px;color:var(--muted)">مینی‌اپ</div>
   </div>
 
-  <!-- PROFILE TAB -->
   <section class="tab active" id="tab-profile">
     <div id="profile-skel">
       <div class="skel" style="height:150px"></div>
@@ -330,7 +474,6 @@
     <div id="profile-content" style="display:none"></div>
   </section>
 
-  <!-- LEADERBOARD TAB -->
   <section class="tab" id="tab-lb">
     <div class="lb-tabs" id="lb-tabs"></div>
     <div id="lb-body">
@@ -339,7 +482,6 @@
     </div>
   </section>
 
-  <!-- SHOP TAB -->
   <section class="tab" id="tab-shop">
     <div class="shop-hero">
       <h2>💰 شارژ موجودی</h2>
@@ -358,7 +500,51 @@
       <span class="v" id="toman-preview">۰ تومان</span>
     </div>
 
-    <button class="btn" id="pay-btn" disabled>💳 پرداخت</button>
+    <div class="mellat-wrap">
+      <div class="mellat-card" id="mellatCard">
+        <div class="mellat-top">
+          <div class="mellat-logo">
+            <div class="flame">ب</div>
+            <span>بانک ملت</span>
+          </div>
+          <div class="mellat-bank">
+            به پرداخت ملت
+            <small>Beh Pardakht Mellat</small>
+          </div>
+        </div>
+
+        <div class="mellat-chip"></div>
+
+        <div class="mellat-number" id="cardNumber">
+          <span>۶۱۰۴</span>
+          <span>۳۳۸۷</span>
+          <span>۶۸۴۶</span>
+          <span>۹۸۲۳</span>
+        </div>
+
+        <div class="mellat-bottom">
+          <div class="cell right">
+            <div class="label">CVV2</div>
+            <div class="val" id="cardCvv">•••</div>
+          </div>
+          <div class="cell center">
+            <div class="label">تاریخ انقضا</div>
+            <div class="val">۱۴۰۸/۰۷</div>
+          </div>
+          <div class="cell left">
+            <div class="label">شماره کارت</div>
+            <div class="val">6104-3387</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-owner-note">
+      💳 برای پرداخت به آیدی زیر پیام بدید:<br>
+      <a href="https://t.me/username95917" target="_blank">@username95917</a>
+    </div>
+
+    <button class="cta-btn" id="reveal-cvv">👁 نمایش CVV2</button>
   </section>
 </div>
 
@@ -385,7 +571,7 @@
   const INIT_DATA = tg?.initData || "";
   const HEADERS = { "X-Init-Data": INIT_DATA };
 
-  const COINS_PER_1000 = 20000; // همون مقداری که توی bot.ts هست
+  const COINS_PER_1000 = 20000;
   const toToman = (c) => Math.floor((c / 1000) * COINS_PER_1000);
 
   const fmt = (n) => new Intl.NumberFormat("fa-IR").format(Math.floor(n || 0));
@@ -487,38 +673,16 @@
           <div class="sub">رکورد: ${fmt(u.stats.bestStreak)}</div>
         </div>
 
-        <div class="card">
-          <div class="k">🎲 شانس</div>
-          <div class="v">${fmt(u.stats.coinflipWins)}</div>
-        </div>
-        <div class="card">
-          <div class="k">✊ RPS</div>
-          <div class="v">${fmt(u.stats.rpsWins)}</div>
-        </div>
-        <div class="card">
-          <div class="k">❌⭕ دوز</div>
-          <div class="v">${fmt(u.stats.tttWins)}</div>
-        </div>
-        <div class="card">
-          <div class="k">🎲 تاس</div>
-          <div class="v">${fmt(u.stats.diceWins)}</div>
-        </div>
-        <div class="card">
-          <div class="k">🎯 دارت</div>
-          <div class="v">${fmt(u.stats.dartWins)}</div>
-        </div>
-        <div class="card">
-          <div class="k">🎰 کازینو</div>
-          <div class="v">${fmt(u.stats.casinoWins)}</div>
-        </div>
-        <div class="card">
-          <div class="k">🎯 حدس عدد</div>
-          <div class="v">${fmt(u.stats.guessWins)}</div>
-        </div>
+        <div class="card"><div class="k">🎲 شانس</div><div class="v">${fmt(u.stats.coinflipWins)}</div></div>
+        <div class="card"><div class="k">✊ RPS</div><div class="v">${fmt(u.stats.rpsWins)}</div></div>
+        <div class="card"><div class="k">❌⭕ دوز</div><div class="v">${fmt(u.stats.tttWins)}</div></div>
+        <div class="card"><div class="k">🎲 تاس</div><div class="v">${fmt(u.stats.diceWins)}</div></div>
+        <div class="card"><div class="k">🎯 دارت</div><div class="v">${fmt(u.stats.dartWins)}</div></div>
+        <div class="card"><div class="k">🎰 کازینو</div><div class="v">${fmt(u.stats.casinoWins)}</div></div>
+        <div class="card"><div class="k">🎯 حدس عدد</div><div class="v">${fmt(u.stats.guessWins)}</div></div>
       </div>
     `;
 
-    // Animate xp bar
     requestAnimationFrame(() => {
       const fill = document.getElementById("xp-fill");
       if (fill) fill.style.width = Math.min(100, u.xpPct) + "%";
@@ -583,27 +747,11 @@
     let html = "";
     const top3 = list.slice(0, 3);
     if (top3.length >= 1) {
-      // Podium: order = [2nd, 1st, 3rd]
       const p1 = top3[0], p2 = top3[1], p3 = top3[2];
       html += `<div class="podium">`;
-      html += p2 ? `
-        <div class="pod p2">
-          <div class="medal">🥈</div>
-          <div class="nm">${esc(p2.name)}</div>
-          <div class="val">${fmt(p2.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
-        </div>` : `<div></div>`;
-      html += p1 ? `
-        <div class="pod p1">
-          <div class="medal">🥇</div>
-          <div class="nm">${esc(p1.name)}</div>
-          <div class="val">${fmt(p1.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
-        </div>` : `<div></div>`;
-      html += p3 ? `
-        <div class="pod p3">
-          <div class="medal">🥉</div>
-          <div class="nm">${esc(p3.name)}</div>
-          <div class="val">${fmt(p3.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div>
-        </div>` : `<div></div>`;
+      html += p2 ? `<div class="pod p2"><div class="medal">🥈</div><div class="nm">${esc(p2.name)}</div><div class="val">${fmt(p2.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div></div>` : `<div></div>`;
+      html += p1 ? `<div class="pod p1"><div class="medal">🥇</div><div class="nm">${esc(p1.name)}</div><div class="val">${fmt(p1.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div></div>` : `<div></div>`;
+      html += p3 ? `<div class="pod p3"><div class="medal">🥉</div><div class="nm">${esc(p3.name)}</div><div class="val">${fmt(p3.value)} <span style="font-size:10px;color:var(--muted)">${unit}</span></div></div>` : `<div></div>`;
       html += `</div>`;
     }
 
@@ -631,7 +779,6 @@
   const quickWrap = document.getElementById("quick-coins");
   const coinInput = document.getElementById("coin-input");
   const tomanPrev = document.getElementById("toman-preview");
-  const payBtn = document.getElementById("pay-btn");
   const QUICK = [100, 500, 1000, 5000];
 
   quickWrap.innerHTML = QUICK.map(v =>
@@ -650,9 +797,7 @@
 
   function updateShopPreview() {
     const coins = Number(coinInput.value) || 0;
-    const valid = Number.isSafeInteger(coins) && coins >= 100;
     tomanPrev.textContent = fmt(toToman(coins)) + " تومان";
-    payBtn.disabled = !valid;
   }
 
   coinInput.addEventListener("input", () => {
@@ -661,29 +806,15 @@
   });
   updateShopPreview();
 
-  payBtn.addEventListener("click", async () => {
-    const coins = Number(coinInput.value);
-    if (!Number.isSafeInteger(coins) || coins < 100) {
-      return toast("حداقل ۱۰۰ سکه می‌تونی بخری 😉");
-    }
-    payBtn.disabled = true;
-    const old = payBtn.textContent;
-    payBtn.textContent = "⏳ در حال ارسال...";
-    try {
-      const res = await fetch("/api/purchase", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...HEADERS },
-        body: JSON.stringify({ coins }),
-      });
-      const data = await res.json();
-      if (data?.message) toast(data.message, 3000);
-      else toast("یه مشکلی پیش اومد 😅");
-    } catch {
-      toast("ارتباط با سرور برقرار نشد 😕");
-    } finally {
-      payBtn.textContent = old;
-      payBtn.disabled = false;
-    }
+  // ---------- CVV Reveal ----------
+  const revealBtn = document.getElementById("reveal-cvv");
+  const cvvEl = document.getElementById("cardCvv");
+  let cvvShown = false;
+  revealBtn.addEventListener("click", () => {
+    cvvShown = !cvvShown;
+    cvvEl.textContent = cvvShown ? "۷۲۱" : "•••";
+    revealBtn.textContent = cvvShown ? "🙈 مخفی کردن CVV2" : "👁 نمایش CVV2";
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred?.("light");
   });
 
   // ---------- Init ----------

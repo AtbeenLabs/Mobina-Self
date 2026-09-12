@@ -11,20 +11,24 @@
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html{height:auto}
-  body{height:auto;min-height:100vh}
+
+  html{height:auto;scroll-behavior:smooth}
   body{
     font-family:'Vazirmatn',system-ui,-apple-system,sans-serif;
     color:#f5f5fa;
     background:#08060f;
     min-height:100vh;
-    padding-bottom:calc(110px + env(safe-area-inset-bottom));
+    min-height:100dvh;
+    padding-bottom:calc(130px + env(safe-area-inset-bottom));
     overflow-x:hidden;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
     -webkit-font-smoothing:antialiased;
-    text-rendering:optimizeLegibility;
+    line-height:1.5;
   }
   input,button,textarea{font-family:inherit}
   button{cursor:pointer;border:0;background:none;color:inherit}
+  a{color:inherit;text-decoration:none}
 
   :root{
     --a1:#8b5cf6; --a2:#ec4899; --a3:#22d3ee;
@@ -35,7 +39,6 @@
     --radius:20px;
     --shadow-1:0 8px 24px rgba(0,0,0,.25);
     --shadow-2:0 16px 40px rgba(0,0,0,.4);
-    /* dynamic theme (per leaderboard tab) */
     --th1:#8b5cf6; --th2:#ec4899; --th-accent:#c4b5fd;
   }
 
@@ -46,10 +49,9 @@
       radial-gradient(1000px 600px at 95% 15%, rgba(236,72,153,.38), transparent 55%),
       radial-gradient(900px 700px at 50% 105%, rgba(34,211,238,.28), transparent 55%),
       linear-gradient(160deg,#08060f 0%, #11071f 55%, #1a0a2e 100%);
-    transition:filter 1s ease;
   }
   .bg-blob{
-    position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;
+    position:absolute;border-radius:50%;filter:blur(80px);opacity:.32;
     animation:blob 18s ease-in-out infinite alternate;pointer-events:none;
   }
   .bg-blob.b1{width:340px;height:340px;background:var(--th1);top:-80px;right:-80px;transition:background 1s ease}
@@ -95,18 +97,49 @@
     to{opacity:1;transform:translateY(0) scale(1)}
   }
 
-  /* ============ PROFILE ============ */
-  .hero{
+  /* ============ SECTION TITLE ============ */
+  .sec-title{
+    display:flex;align-items:center;gap:8px;
+    font-size:14px;font-weight:800;color:var(--mut);
+    margin:22px 4px 10px;letter-spacing:.2px;
+  }
+  .sec-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--glass-b),transparent)}
+  .sec-title .badge-count{
+    font-size:10px;padding:2px 8px;border-radius:999px;
+    background:rgba(139,92,246,.2);color:#c4b5fd;
+    border:1px solid rgba(139,92,246,.3);
+    font-weight:800;
+  }
+
+  /* ============ CARDS ============ */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .card{
+    background:var(--glass);border:1px solid var(--glass-b);border-radius:var(--radius);
+    padding:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), var(--shadow-1);
+    transition:transform .18s ease, border-color .2s ease, background .2s ease;
+    animation:fadeUp .5s cubic-bezier(.2,.9,.3,1) both;position:relative;overflow:hidden;
+  }
+  .card:active{transform:scale(.97);border-color:rgba(255,255,255,.2)}
+  .card .k{font-size:11.5px;color:var(--mut);margin-bottom:6px;display:flex;align-items:center;gap:6px;font-weight:700}
+  .card .v{font-size:22px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1.15}
+  .card .sub{font-size:10.5px;color:var(--mut);margin-top:4px;font-weight:600}
+  .card.stat-w .v{color:#22c55e}
+  .card.stat-l .v{color:#ef4444}
+  .card.stat-s .v{color:#fb923c}
+
+  /* ============ HOME HERO ============ */
+  .home-hero{
     position:relative;border-radius:26px;padding:22px 20px 24px;
     background:
       radial-gradient(120% 100% at 0% 0%, rgba(255,255,255,.10), transparent 60%),
-      linear-gradient(135deg, rgba(139,92,246,.28), rgba(236,72,153,.20));
+      linear-gradient(135deg, rgba(139,92,246,.30), rgba(236,72,153,.22));
     border:1px solid rgba(255,255,255,.12);
     box-shadow:var(--shadow-2), inset 0 1px 0 rgba(255,255,255,.08);
     overflow:hidden;margin-bottom:16px;
     animation:fadeUp .6s .05s cubic-bezier(.2,.9,.3,1) both;
   }
-  .hero::before{
+  .home-hero::before{
     content:"";position:absolute;inset:-50% -30% auto auto;
     width:360px;height:360px;
     background:radial-gradient(circle, rgba(236,72,153,.55), transparent 60%);
@@ -167,22 +200,7 @@
   .xp-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);animation:xpShine 2.4s ease-in-out infinite;border-radius:inherit}
   @keyframes xpShine{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
 
-  .sec-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:var(--mut);margin:20px 4px 10px;letter-spacing:.2px}
-  .sec-title::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--glass-b),transparent)}
-
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  .card{
-    background:var(--glass);border:1px solid var(--glass-b);border-radius:var(--radius);
-    padding:14px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), var(--shadow-1);
-    transition:transform .18s ease, border-color .2s ease, background .2s ease;
-    animation:fadeUp .5s cubic-bezier(.2,.9,.3,1) both;position:relative;overflow:hidden;
-  }
-  .card:active{transform:scale(.97);border-color:rgba(255,255,255,.2)}
-  .card .k{font-size:11.5px;color:var(--mut);margin-bottom:6px;display:flex;align-items:center;gap:6px;font-weight:700}
-  .card .v{font-size:22px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums;line-height:1.15}
-  .card .sub{font-size:10.5px;color:var(--mut);margin-top:4px;font-weight:600}
-
+  /* Coins card */
   .card-coins{
     grid-column:1/-1;
     background:
@@ -197,10 +215,79 @@
   .card-coins .v{font-size:34px;background:linear-gradient(90deg,#fde68a,#fbbf24,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-1px;display:flex;align-items:baseline;gap:8px}
   .card-coins .v small{font-size:14px;font-weight:800;color:#fde68a;-webkit-text-fill-color:#fde68a}
   .card-coins .sub{font-size:12px;color:rgba(253,230,138,.85);font-weight:700;margin-top:6px}
-  .card.stat-w .v{color:#22c55e}
-  .card.stat-l .v{color:#ef4444}
-  .card.stat-s .v{color:#fb923c}
 
+  /* ============ QUICK ACTIONS ============ */
+  .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .qa{
+    padding:14px 6px;border-radius:18px;
+    background:var(--glass);border:1px solid var(--glass-b);
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    transition:all .22s cubic-bezier(.2,.9,.3,1);
+    backdrop-filter:blur(10px);
+    text-align:center;
+  }
+  .qa:active{transform:scale(.95);background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4)}
+  .qa .ic{
+    width:38px;height:38px;border-radius:12px;
+    display:grid;place-items:center;font-size:20px;
+    background:linear-gradient(135deg,var(--qa1,#8b5cf6),var(--qa2,#ec4899));
+    box-shadow:0 6px 18px rgba(139,92,246,.35), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .qa .nm{font-size:10.5px;font-weight:800;color:#fff}
+  .qa .ds{font-size:9px;color:var(--mut);font-weight:600}
+
+  /* ============ MISSIONS ============ */
+  .mission-item{
+    padding:14px;border-radius:16px;
+    background:var(--glass);border:1px solid var(--glass-b);
+    margin-bottom:8px;backdrop-filter:blur(12px);
+    animation:fadeUp .5s ease both;
+  }
+  .mission-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
+  .mission-title{font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .mission-reward{font-size:12px;font-weight:900;color:#fde68a;white-space:nowrap}
+  .mission-bar{
+    height:8px;border-radius:999px;background:rgba(0,0,0,.35);
+    overflow:hidden;border:1px solid rgba(255,255,255,.08);
+    position:relative;
+  }
+  .mission-fill{
+    height:100%;border-radius:999px;
+    background:linear-gradient(90deg,#22d3ee,#8b5cf6 50%,#ec4899);
+    transition:width 1.2s cubic-bezier(.2,.8,.2,1);
+    box-shadow:0 0 12px rgba(139,92,246,.5);
+  }
+  .mission-stat{font-size:10.5px;color:var(--mut);font-weight:700;margin-top:6px;display:flex;justify-content:space-between}
+  .mission-done{color:#22c55e !important}
+
+  /* ============ ACHIEVEMENTS ============ */
+  .ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ach{
+    padding:14px 8px;border-radius:18px;
+    background:var(--glass);border:1px solid var(--glass-b);
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    text-align:center;
+    position:relative;overflow:hidden;
+    transition:all .25s ease;
+    animation:pop .4s cubic-bezier(.2,.9,.3,1) both;
+  }
+  .ach.locked{opacity:.42;filter:grayscale(.85)}
+  .ach.unlocked{
+    background:linear-gradient(135deg, rgba(251,191,36,.18), rgba(236,72,153,.12));
+    border-color:rgba(251,191,36,.35);
+    box-shadow:0 8px 24px rgba(251,191,36,.15), inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  .ach.unlocked::before{
+    content:"";position:absolute;top:-50%;right:-50%;width:100%;height:100%;
+    background:radial-gradient(circle, rgba(251,191,36,.4), transparent 65%);
+    animation:achGlow 3s ease-in-out infinite;
+  }
+  @keyframes achGlow{0%,100%{opacity:.4}50%{opacity:.9}}
+  .ach .em{font-size:28px;line-height:1;position:relative;z-index:1}
+  .ach .ttl{font-size:10.5px;font-weight:800;position:relative;z-index:1}
+  .ach .lvl{font-size:9px;color:var(--mut);font-weight:700;position:relative;z-index:1}
+
+  /* ============ BADGES ============ */
   .badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
   .badge{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid;animation:pop .4s cubic-bezier(.2,.9,.3,1) both}
   @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -211,10 +298,7 @@
   .badge.green{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#86efac}
 
   /* ============ LEADERBOARD ============ */
-  .lb-tabs{
-    display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:10px;
-    scrollbar-width:none;-webkit-overflow-scrolling:touch;
-  }
+  .lb-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .lb-tabs::-webkit-scrollbar{display:none}
   .lb-tab{
     flex:0 0 auto;padding:9px 15px;border-radius:999px;
@@ -230,7 +314,6 @@
   }
   .lb-tab:active{transform:scale(.96)}
 
-  /* Per-tab hero banner */
   .lb-hero{
     position:relative;border-radius:22px;padding:20px;margin-bottom:14px;
     background:
@@ -238,18 +321,10 @@
       linear-gradient(135deg, var(--th1), var(--th2));
     border:1px solid rgba(255,255,255,.15);
     box-shadow:0 16px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
-    overflow:hidden;
-    animation:heroIn .5s cubic-bezier(.2,.9,.3,1) both;
+    overflow:hidden;animation:heroIn .5s cubic-bezier(.2,.9,.3,1) both;
   }
-  @keyframes heroIn{
-    from{opacity:0;transform:translateY(-10px) scale(.98)}
-    to{opacity:1;transform:translateY(0) scale(1)}
-  }
-  .lb-hero::before{
-    content:"";position:absolute;inset:-60% -20% auto auto;width:300px;height:300px;
-    background:radial-gradient(circle, rgba(255,255,255,.35), transparent 60%);
-    filter:blur(30px);pointer-events:none;
-  }
+  @keyframes heroIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .lb-hero::before{content:"";position:absolute;inset:-60% -20% auto auto;width:300px;height:300px;background:radial-gradient(circle, rgba(255,255,255,.35), transparent 60%);filter:blur(30px);pointer-events:none}
   .lb-hero-inner{position:relative;z-index:1;display:flex;align-items:center;gap:14px}
   .lb-hero-icon{
     width:60px;height:60px;border-radius:18px;flex-shrink:0;
@@ -267,9 +342,7 @@
     background:var(--glass);border:1px solid var(--glass-b);
     backdrop-filter:blur(16px);position:relative;overflow:hidden;
     animation:podIn .55s cubic-bezier(.2,.9,.3,1) both;
-    transition:transform .2s ease;
   }
-  .pod:active{transform:scale(.97)}
   @keyframes podIn{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
   .pod .medal{font-size:28px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.4))}
   .pod .nm{font-size:12px;font-weight:800;margin:8px 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -282,12 +355,7 @@
     box-shadow:0 14px 38px color-mix(in srgb, var(--th1) 35%, transparent);
     transform:translateY(-8px);
   }
-  .pod.p1::before{
-    content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
-    width:70%;height:60px;
-    background:radial-gradient(ellipse at top, color-mix(in srgb, var(--th1) 65%, transparent), transparent 70%);
-    pointer-events:none;
-  }
+  .pod.p1::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:70%;height:60px;background:radial-gradient(ellipse at top, color-mix(in srgb, var(--th1) 65%, transparent), transparent 70%);pointer-events:none}
   .pod.p1 .val{color:var(--th-accent)}
   .pod.p2{grid-column:1;background:linear-gradient(180deg,rgba(203,213,225,.18),rgba(203,213,225,.03));border-color:rgba(203,213,225,.35)}
   .pod.p2 .val{color:#e2e8f0}
@@ -309,12 +377,7 @@
     border-color:color-mix(in srgb, var(--th1) 55%, transparent);
     box-shadow:0 10px 28px color-mix(in srgb, var(--th1) 30%, transparent);
   }
-  .lb-rank{
-    width:32px;height:32px;border-radius:11px;
-    display:grid;place-items:center;
-    font-size:13px;font-weight:800;
-    background:rgba(255,255,255,.07);color:var(--mut);flex-shrink:0;
-  }
+  .lb-rank{width:32px;height:32px;border-radius:11px;display:grid;place-items:center;font-size:13px;font-weight:800;background:rgba(255,255,255,.07);color:var(--mut);flex-shrink:0}
   .lb-row.me .lb-rank{background:linear-gradient(135deg,var(--th1),var(--th2));color:#fff}
   .lb-info{flex:1;min-width:0}
   .lb-info .nm{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -333,7 +396,16 @@
     animation:fadeUp .55s .05s cubic-bezier(.2,.9,.3,1) both;
   }
   .shop-hero h2{margin:0 0 6px;font-size:18px;font-weight:800;letter-spacing:-.3px}
-  .shop-hero p{margin:0;font-size:12.5px;color:var(--mut);font-weight:600;line-height:1.6}
+  .shop-hero p{margin:0;font-size:12.5px;color:var(--mut);font-weight:600;line-height:1.7}
+
+  .rate-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    margin-top:12px;padding:8px 14px;border-radius:999px;
+    background:linear-gradient(135deg, rgba(251,191,36,.22), rgba(236,72,153,.16));
+    border:1px solid rgba(251,191,36,.4);
+    font-size:12.5px;font-weight:800;color:#fde68a;
+    box-shadow:0 6px 18px rgba(251,191,36,.15);
+  }
 
   .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 12px}
   .chip{
@@ -372,6 +444,7 @@
   .toman-preview .k{font-size:12.5px;color:rgba(253,230,138,.85);font-weight:700}
   .toman-preview .v{font-size:20px;font-weight:900;color:#fde68a;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
 
+  /* ============ MELLAT CARD ============ */
   .card-scene{margin:14px 0 12px;perspective:1200px}
   .mellat-card{
     position:relative;width:100%;aspect-ratio:1.586 / 1;
@@ -392,37 +465,67 @@
   }
   @keyframes cardEnter{from{opacity:0;transform:translateY(30px) rotateX(-15deg)}to{opacity:1;transform:translateY(0) rotateX(0)}}
   .mellat-card::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 2px, transparent 2px 6px);pointer-events:none;mix-blend-mode:overlay}
-  .mellat-card::after{content:"";position:absolute;top:-40%;left:-30%;width:80%;height:180%;background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.2) 50%,transparent 60%);transform:rotate(8deg);animation:cardShine 5s ease-in-out infinite;pointer-events:none}
-  @keyframes cardShine{0%,60%{transform:translateX(-120%) rotate(8deg)}85%,100%{transform:translateX(220%) rotate(8deg)}}
+  .mellat-card::after{
+    content:"";position:absolute;top:-40%;left:-30%;width:80%;height:180%;
+    background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);
+    transform:rotate(8deg);
+    animation:cardShine 5s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes cardShine{0%,55%{transform:translateX(-120%) rotate(8deg)}80%,100%{transform:translateX(240%) rotate(8deg)}}
+
+  /* Hologram scan line */
+  .mellat-card .scan{
+    position:absolute;left:0;right:0;height:2px;
+    background:linear-gradient(90deg, transparent, rgba(100,220,255,.9), rgba(255,100,220,.9), transparent);
+    box-shadow:0 0 20px rgba(100,220,255,.8);
+    animation:scanLine 4s ease-in-out infinite;
+    pointer-events:none;z-index:3;
+    opacity:.85;
+  }
+  @keyframes scanLine{
+    0%{top:5%;opacity:0}
+    10%{opacity:.9}
+    50%{top:90%;opacity:.9}
+    90%{opacity:.9}
+    100%{top:5%;opacity:0}
+  }
+
   .mellat-top{display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:2}
   .mellat-logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:15px}
   .mellat-logo .flame{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#ffd66b,#f0a437);color:#7a0a18;font-weight:900;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.6)}
   .mellat-bank{text-align:left;font-size:11px;font-weight:800;color:rgba(255,255,255,.9);line-height:1.5}
   .mellat-bank small{display:block;font-size:9px;color:rgba(255,255,255,.65);font-weight:500}
-  .mellat-chip{position:relative;z-index:2;width:48px;height:38px;margin:16px 0 12px;border-radius:9px;background:linear-gradient(135deg,#e9d9a4 0%, #c9b26a 45%, #a68e4a 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.7),0 3px 8px rgba(0,0,0,.35);overflow:hidden}
+  .mellat-chip{position:relative;z-index:2;width:48px;height:38px;margin:14px 0 10px;border-radius:9px;background:linear-gradient(135deg,#e9d9a4 0%, #c9b26a 45%, #a68e4a 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.7),0 3px 8px rgba(0,0,0,.35);overflow:hidden}
   .mellat-chip::before{content:"";position:absolute;inset:6px;background:linear-gradient(90deg, transparent 45%, rgba(0,0,0,.3) 45%, rgba(0,0,0,.3) 55%, transparent 55%),linear-gradient(0deg,  transparent 40%, rgba(0,0,0,.3) 40%, rgba(0,0,0,.3) 60%, transparent 60%);border-radius:3px}
-  .mellat-number{position:relative;z-index:2;display:flex;justify-content:space-between;gap:10px;font-size:clamp(16px, 5vw, 21px);font-weight:900;letter-spacing:.5px;direction:ltr;text-shadow:0 2px 6px rgba(0,0,0,.5);font-variant-numeric:tabular-nums;margin-bottom:18px}
+  .mellat-number{position:relative;z-index:2;display:flex;justify-content:space-between;gap:10px;font-size:clamp(16px, 5vw, 21px);font-weight:900;letter-spacing:.5px;direction:ltr;text-shadow:0 2px 6px rgba(0,0,0,.5);font-variant-numeric:tabular-nums;margin-bottom:14px}
   .mellat-bottom{position:relative;z-index:2;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
   .mellat-bottom .cell{display:flex;flex-direction:column;gap:2px}
-  .mellat-bottom .cell .label{font-size:9px;color:rgba(255,255,255,.7);font-weight:700;letter-spacing:.5px}
-  .mellat-bottom .cell .val{font-size:13.5px;font-weight:800;direction:ltr;text-shadow:0 1px 3px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
-  .mellat-bottom .cell.right{text-align:right}
+  .mellat-bottom .cell .label{font-size:9px;color:rgba(255,255,255,.75);font-weight:700;letter-spacing:.5px}
+  .mellat-bottom .cell .val{font-size:13.5px;font-weight:800;direction:rtl;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .mellat-bottom .cell.owner .val{font-size:12px;direction:rtl}
   .mellat-bottom .cell.left{text-align:left}
-  .mellat-bottom .cell.center{text-align:center;flex:1}
 
-  .card-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-  .card-action{padding:12px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-b);font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s ease;backdrop-filter:blur(10px)}
+  .card-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+  .card-action{padding:13px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-b);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s ease;backdrop-filter:blur(10px)}
   .card-action:active{transform:scale(.97);background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4)}
 
-  .card-owner-note{
-    margin-top:14px;text-align:center;font-size:13px;color:var(--mut);
-    line-height:1.9;padding:14px;border-radius:16px;
-    background:var(--glass);border:1px dashed rgba(255,255,255,.12);
-    font-weight:600;
+  /* ============ OWNER NOTE ============ */
+  .owner-note{
+    margin-top:16px;border-radius:20px;padding:18px;
+    background:
+      radial-gradient(120% 100% at 0% 0%, rgba(139,92,246,.16), transparent 60%),
+      var(--glass);
+    border:1px solid var(--glass-b);
+    backdrop-filter:blur(14px);
+    box-shadow:var(--shadow-1);
   }
-  .card-owner-note b{color:#fde68a;font-weight:800}
-  .card-owner-note a{color:#a78bfa;text-decoration:none;font-weight:800;border-bottom:1.5px dashed rgba(167,139,250,.55);padding-bottom:1px}
-  .card-owner-note a:active{color:#c4b5fd}
+  .owner-note .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0}
+  .owner-note .row + .row{border-top:1px dashed rgba(255,255,255,.08)}
+  .owner-note .row .label{font-size:12.5px;color:var(--mut);font-weight:700;display:flex;align-items:center;gap:8px}
+  .owner-note .row .value{font-size:14px;font-weight:900;color:#fff;text-align:left}
+  .owner-note .row .value.gold{color:#fde68a}
+  .owner-note .row .value a{color:#c4b5fd;font-weight:900;border-bottom:1.5px dashed rgba(196,181,253,.55);padding-bottom:1px}
 
   .btn{
     width:100%;border:0;border-radius:18px;padding:16px;
@@ -431,31 +534,34 @@
     box-shadow:0 14px 34px rgba(139,92,246,.45);
     transition:transform .15s ease, box-shadow .2s ease;
     display:flex;align-items:center;justify-content:center;gap:8px;
-    text-decoration:none;margin-top:14px;
+    margin-top:14px;
   }
   .btn:active{transform:scale(.97);box-shadow:0 8px 20px rgba(139,92,246,.4)}
 
+  /* ============ BOTTOM NAV ============ */
   .nav{
     position:fixed;bottom:0;left:0;right:0;z-index:50;
     padding:10px 14px calc(14px + env(safe-area-inset-bottom));
     background:linear-gradient(180deg, rgba(8,6,15,0), rgba(8,6,15,.92) 40%);
     backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
     display:flex;gap:8px;justify-content:center;
+    pointer-events:none;
   }
   .nav-inner{
-    max-width:560px;width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
-    background:rgba(20,18,38,.78);
+    max-width:560px;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;
+    background:rgba(20,18,38,.80);
     border:1px solid rgba(255,255,255,.10);
     border-radius:24px;padding:6px;
     box-shadow:0 16px 44px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    pointer-events:auto;
   }
   .nav-btn{
-    padding:12px 6px;border-radius:18px;
-    color:var(--mut);font-weight:800;font-size:11.5px;
-    display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:10px 4px;border-radius:18px;
+    color:var(--mut);font-weight:800;font-size:10.5px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;
     transition:all .25s cubic-bezier(.2,.9,.3,1);
   }
-  .nav-btn .ic{font-size:20px;line-height:1;transition:transform .25s ease}
+  .nav-btn .ic{font-size:19px;line-height:1;transition:transform .25s ease}
   .nav-btn.active{
     color:#fff;
     background:linear-gradient(135deg, rgba(139,92,246,.4), rgba(236,72,153,.3));
@@ -482,19 +588,13 @@
   .skel{
     height:64px;border-radius:18px;margin-bottom:10px;
     background:linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.12), rgba(255,255,255,.05));
-    background-size:200% 100%;
-    animation:skel 1.5s ease-in-out infinite;
+    background-size:200% 100%;animation:skel 1.5s ease-in-out infinite;
   }
   @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
   .empty{text-align:center;padding:50px 20px;color:var(--mut);font-size:13.5px;font-weight:600;animation:fadeUp .5s ease both}
   .empty .em{font-size:52px;margin-bottom:10px;display:block;filter:grayscale(.3)}
-  .empty button{
-    margin-top:16px;padding:12px 24px;border-radius:14px;
-    background:linear-gradient(135deg,var(--a1),var(--a2));
-    color:#fff;font-weight:800;font-size:13.5px;
-    box-shadow:0 10px 24px rgba(139,92,246,.4);
-  }
+  .empty button{margin-top:16px;padding:12px 24px;border-radius:14px;background:linear-gradient(135deg,var(--a1),var(--a2));color:#fff;font-weight:800;font-size:13.5px;box-shadow:0 10px 24px rgba(139,92,246,.4)}
 
   @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
   ::-webkit-scrollbar{width:0;height:0}
@@ -517,17 +617,19 @@
     <div class="hdr-chip">Mini App</div>
   </div>
 
-  <section class="tab active" id="tab-profile">
-    <div id="profile-skel">
+  <!-- ========== HOME ========== -->
+  <section class="tab active" id="tab-home">
+    <div id="home-skel">
       <div class="skel" style="height:170px"></div>
       <div class="grid" style="margin-top:12px">
         <div class="skel"></div><div class="skel"></div>
         <div class="skel"></div><div class="skel"></div>
       </div>
     </div>
-    <div id="profile-content" style="display:none"></div>
+    <div id="home-content" style="display:none"></div>
   </section>
 
+  <!-- ========== LEADERBOARD ========== -->
   <section class="tab" id="tab-lb">
     <div class="lb-tabs" id="lb-tabs"></div>
     <div id="lb-body">
@@ -536,10 +638,17 @@
     </div>
   </section>
 
+  <!-- ========== PROFILE ========== -->
+  <section class="tab" id="tab-profile">
+    <div id="profile-content"></div>
+  </section>
+
+  <!-- ========== SHOP ========== -->
   <section class="tab" id="tab-shop">
     <div class="shop-hero">
       <h2>💰 شارژ موجودی</h2>
-      <p>مقدار سکه‌ای که می‌خوای بخری رو انتخاب کن، معادل تومنش خودکار حساب می‌شه. بعدش کارت به کارت کن و رسید رو به آیدی زیر بفرست.</p>
+      <p>مقدار سکه رو انتخاب کن، معادل تومنش خودکار حساب می‌شه. بعد کارت به کارت کن و رسید رو به پشتیبانی بفرست.</p>
+      <div class="rate-badge">💵 هر ۱۰۰۰ سکه = ۲۰,۰۰۰ تومان</div>
     </div>
 
     <div class="quick" id="quick-coins"></div>
@@ -558,6 +667,7 @@
 
     <div class="card-scene">
       <div class="mellat-card" id="mellatCard">
+        <div class="scan"></div>
         <div class="mellat-top">
           <div class="mellat-logo">
             <div class="flame">ب</div>
@@ -568,28 +678,21 @@
             <small>Beh Pardakht Mellat</small>
           </div>
         </div>
-
         <div class="mellat-chip"></div>
-
         <div class="mellat-number">
           <span>۶۱۰۴</span>
           <span>۳۳۸۷</span>
           <span>۶۸۴۶</span>
           <span>۹۸۲۳</span>
         </div>
-
         <div class="mellat-bottom">
-          <div class="cell right">
-            <div class="label">CVV2</div>
-            <div class="val" id="cardCvv">•••</div>
+          <div class="cell owner right" style="flex:1">
+            <div class="label">صاحب کارت</div>
+            <div class="val">آتبین امیدی نرگسی</div>
           </div>
-          <div class="cell center">
-            <div class="label">تاریخ انقضا</div>
-            <div class="val">۱۴۰۸/۰۷</div>
-          </div>
-          <div class="cell left">
+          <div class="cell left" style="flex:0 0 auto">
             <div class="label">شماره کارت</div>
-            <div class="val">6104-3387</div>
+            <div class="val" style="direction:ltr">6104-3387</div>
           </div>
         </div>
       </div>
@@ -599,31 +702,24 @@
       <button class="card-action" id="copy-card">
         <span>📋</span> کپی شماره کارت
       </button>
-      <button class="card-action" id="toggle-cvv">
-        <span id="cvv-icon">👁</span> <span id="cvv-text">نمایش CVV2</span>
-      </button>
     </div>
 
-    <div class="card-owner-note">
-  <div style="font-size:11px;color:var(--mut);margin-bottom:8px;letter-spacing:.3px">
-    👤 صاحب کارت
-  </div>
-  <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:14px">
-    آتبین امیدی نرگسی
-  </div>
+    <div class="sec-title">📞 اطلاعات پرداخت</div>
 
-  <div style="font-size:11px;color:var(--mut);margin-bottom:8px;letter-spacing:.3px">
-    💵 نرخ تبدیل
-  </div>
-  <div style="font-size:13.5px;font-weight:800;color:#fde68a;margin-bottom:14px">
-    هر ۱۰۰۰ سکه = ۲۰,۰۰۰ تومان
-  </div>
-
-  <div style="font-size:11px;color:var(--mut);margin-bottom:8px;letter-spacing:.3px">
-    💬 برای پرداخت به آیدی زیر پیام بدید
-  </div>
-  <a href="https://t.me/username95917" target="_blank">@username95917</a>
-</div>
+    <div class="owner-note">
+      <div class="row">
+        <span class="label">👤 صاحب کارت</span>
+        <span class="value">آتبین امیدی نرگسی</span>
+      </div>
+      <div class="row">
+        <span class="label">💵 نرخ تبدیل</span>
+        <span class="value gold">هر ۱۰۰۰ سکه = ۲۰,۰۰۰ تومان</span>
+      </div>
+      <div class="row">
+        <span class="label">💬 پشتیبانی</span>
+        <span class="value"><a href="https://t.me/username95917" target="_blank">@username95917</a></span>
+      </div>
+    </div>
 
     <a class="btn" href="https://t.me/username95917" target="_blank">
       <span>✈️</span> ارسال رسید به پشتیبانی
@@ -633,8 +729,9 @@
 
 <nav class="nav">
   <div class="nav-inner">
-    <button class="nav-btn active" data-tab="profile"><span class="ic">👤</span>پروفایل</button>
+    <button class="nav-btn active" data-tab="home"><span class="ic">🏠</span>خانه</button>
     <button class="nav-btn" data-tab="lb"><span class="ic">🏆</span>لیدربورد</button>
+    <button class="nav-btn" data-tab="profile"><span class="ic">👤</span>پروفایل</button>
     <button class="nav-btn" data-tab="shop"><span class="ic">💰</span>شارژ</button>
   </div>
 </nav>
@@ -694,77 +791,231 @@
       const id = "tab-" + btn.dataset.tab;
       tabs.forEach((t) => t.classList.toggle("active", t.id === id));
       haptic("select");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       if (btn.dataset.tab === "lb") loadLeaderboard(currentLB);
-      else if (btn.dataset.tab === "profile") loadProfile();
     });
   });
 
-  // ============ PROFILE ============
-  let profileLoading = false;
+  // ============ DATA LOAD ============
+  let userData = null;
+  let loading = false;
 
-  async function loadProfile(force = false) {
-    if (profileLoading) return;
-    profileLoading = true;
+  async function loadUser(force = false) {
+    if (loading) return;
+    if (userData && !force) {
+      renderAll(userData);
+      return;
+    }
+    loading = true;
 
-    const skel = document.getElementById("profile-skel");
-    const box = document.getElementById("profile-content");
-    skel.style.display = "";
-    box.style.display = "none";
+    const homeSkel = document.getElementById("home-skel");
+    const homeBox = document.getElementById("home-content");
+    if (homeSkel && homeBox) {
+      homeSkel.style.display = "";
+      homeBox.style.display = "none";
+    }
 
     try {
       const res = await fetch("/api/me", {
         headers: HEADERS,
         cache: "no-store"
       });
-      if (!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
+      if (!res.ok) throw new Error("HTTP " + res.status);
       const u = await res.json();
-      renderProfile(u);
-      skel.style.display = "none";
-      box.style.display = "";
+      userData = u;
+      renderAll(u);
+      if (homeSkel) homeSkel.style.display = "none";
+      if (homeBox) homeBox.style.display = "";
     } catch (e) {
-      console.error("profile load error:", e);
-      skel.style.display = "none";
-      box.style.display = "";
-      box.innerHTML = `
-        <div class="empty">
-          <div class="em">😵</div>
-          پروفایلت لود نشد
-          <div style="font-size:11px;opacity:.7;margin-top:8px;direction:ltr">${esc(String(e.message||e))}</div>
-          <button onclick="location.reload()">🔄 تلاش دوباره</button>
-        </div>
-      `;
+      console.error("load error:", e);
+      if (homeSkel) homeSkel.style.display = "none";
+      if (homeBox) homeBox.style.display = "";
+      if (homeBox) homeBox.innerHTML = `<div class="empty"><div class="em">😵</div>دیتا لود نشد<div style="font-size:11px;opacity:.7;margin-top:8px;direction:ltr">${esc(String(e.message||e))}</div><button onclick="location.reload()">🔄 تلاش دوباره</button></div>`;
     } finally {
-      profileLoading = false;
+      loading = false;
     }
   }
 
-  function getBadges(u) {
-    const badges = [];
-    if (u.stats.wins >= 100) badges.push({ c: "gold", t: "🏆 صدتایی" });
-    if (u.stats.wins >= 500) badges.push({ c: "gold", t: "👑 پانصدتایی" });
-    if (u.level >= 10) badges.push({ c: "purple", t: "⭐ لول ۱۰+" });
-    if (u.level >= 50) badges.push({ c: "purple", t: "💎 لول ۵۰+" });
-    if (u.coins >= 10000) badges.push({ c: "gold", t: "💰 پولدار" });
-    if (u.stats.winStreak >= 5) badges.push({ c: "pink", t: "🔥 استریک ۵+" });
-    if (u.stats.bestStreak >= 10) badges.push({ c: "pink", t: "⚡ رکورددار" });
-    if (u.stats.casinoWins >= 20) badges.push({ c: "green", t: "🎰 کازینو باز" });
-    if (u.stats.guessWins >= 20) badges.push({ c: "cyan", t: "🎯 حدس‌زن" });
-    if (u.stats.games >= 50) badges.push({ c: "cyan", t: "🎮 حرفه‌ای" });
-    return badges.slice(0, 4);
+  function renderAll(u) {
+    renderHome(u);
+    renderProfile(u);
   }
 
+  // ============ ACHIEVEMENTS ============
+  const ACHIEVEMENTS = [
+    { id: "first_game", em: "🎮", title: "شروع", desc: "۱ بازی", check: u => u.stats.games >= 1 },
+    { id: "gamer_10", em: "🕹️", title: "بازیکن", desc: "۱۰ بازی", check: u => u.stats.games >= 10 },
+    { id: "gamer_50", em: "🎯", title: "حرفه‌ای", desc: "۵۰ بازی", check: u => u.stats.games >= 50 },
+    { id: "gamer_200", em: "🏅", title: "افسانه‌ای", desc: "۲۰۰ بازی", check: u => u.stats.games >= 200 },
+    { id: "win_10", em: "✌️", title: "برنده", desc: "۱۰ برد", check: u => u.stats.wins >= 10 },
+    { id: "win_50", em: "🏆", title: "قهرمان", desc: "۵۰ برد", check: u => u.stats.wins >= 50 },
+    { id: "win_100", em: "👑", title: "پادشاه", desc: "۱۰۰ برد", check: u => u.stats.wins >= 100 },
+    { id: "win_500", em: "🌟", title: "غول", desc: "۵۰۰ برد", check: u => u.stats.wins >= 500 },
+    { id: "streak_3", em: "🔥", title: "داغ", desc: "استریک ۳", check: u => u.stats.bestStreak >= 3 },
+    { id: "streak_5", em: "⚡", title: "آتشین", desc: "استریک ۵", check: u => u.stats.bestStreak >= 5 },
+    { id: "streak_10", em: "🌋", title: "غیرقابل توقف", desc: "استریک ۱۰", check: u => u.stats.bestStreak >= 10 },
+    { id: "coins_1k", em: "💰", title: "سکه‌دار", desc: "۱K سکه", check: u => u.coins >= 1000 },
+    { id: "coins_10k", em: "💎", title: "پولدار", desc: "۱۰K سکه", check: u => u.coins >= 10000 },
+    { id: "coins_100k", em: "🏦", title: "بانکدار", desc: "۱۰۰K سکه", check: u => u.coins >= 100000 },
+    { id: "level_5", em: "⭐", title: "لول ۵", desc: "لول ۵", check: u => u.level >= 5 },
+    { id: "level_10", em: "🌟", title: "لول ۱۰", desc: "لول ۱۰", check: u => u.level >= 10 },
+    { id: "level_25", em: "✨", title: "لول ۲۵", desc: "لول ۲۵", check: u => u.level >= 25 },
+    { id: "level_50", em: "💫", title: "لول ۵۰", desc: "لول ۵۰", check: u => u.level >= 50 }
+  ];
+
+  // ============ HOME ============
+  function renderHome(u) {
+    const box = document.getElementById("home-content");
+    const initial = (u.name || "?").trim().charAt(0).toUpperCase();
+    const avatarUrl = ME?.photo_url || null;
+    const avatarHTML = avatarUrl
+      ? `<img src="${avatarUrl}" alt="" onerror="this.style.display='none';this.parentNode.textContent='${esc(initial)}'">`
+      : esc(initial);
+
+    const unlockedAch = ACHIEVEMENTS.filter(a => a.check(u)).length;
+
+    // Missions
+    const MISSIONS = [
+      { games: 50, reward: 100 },
+      { games: 100, reward: 150 },
+      { games: 150, reward: 200 },
+      { games: 200, reward: 250 }
+    ];
+    const missionsHTML = MISSIONS.map(m => {
+      const pct = Math.min(100, Math.round((u.stats.games / m.games) * 100));
+      const done = u.stats.games >= m.games;
+      return `
+        <div class="mission-item">
+          <div class="mission-head">
+            <span class="mission-title">${done ? "✅" : "🎯"} ${fmt(m.games)} بازی</span>
+            <span class="mission-reward">${done ? "✅ گرفتی" : `🎁 ${fmt(m.reward)} MBN`}</span>
+          </div>
+          <div class="mission-bar">
+            <div class="mission-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="mission-stat">
+            <span>${fmt(Math.min(u.stats.games, m.games))} / ${fmt(m.games)}</span>
+            <span class="${done ? "mission-done" : ""}">${done ? "کامل شد" : `${pct}٪`}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Achievements preview (last 6 unlocked)
+    const previewAch = ACHIEVEMENTS.filter(a => a.check(u)).slice(-6);
+    const achPreviewHTML = previewAch.length
+      ? previewAch.map(a => `<div class="ach unlocked"><div class="em">${a.em}</div><div class="ttl">${esc(a.title)}</div><div class="lvl">${esc(a.desc)}</div></div>`).join("")
+      : `<div style="grid-column:1/-1;text-align:center;color:var(--mut);font-size:12.5px;padding:20px">هنوز دستاوردی باز نکردی 🔒</div>`;
+
+    box.innerHTML = `
+      <div class="home-hero">
+        <div class="hero-row">
+          <div class="avatar-ring">
+            <div class="avatar">${avatarHTML}</div>
+          </div>
+          <div class="who">
+            <h1>سلام ${esc(u.name || "کاربر")} 👋</h1>
+            <p class="handle">${u.username ? "@" + esc(u.username) : "🆔 " + u.id}</p>
+            <div class="lvl-chip">⭐ لول ${fmt(u.level)} • ${esc(u.levelName || "—")}</div>
+          </div>
+        </div>
+
+        <div class="xp-wrap">
+          <div class="xp-info">
+            <span>✨ <b>${fmt(u.xpCurrent)}</b> / ${fmt(u.xpNeeded)} XP</span>
+            <span><b>${fmt(u.xpPct)}٪</b></span>
+          </div>
+          <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card card-coins">
+          <div class="k">🪙 موجودی سکه</div>
+          <div class="v">${fmt(u.coins)} <small>MBN</small></div>
+          <div class="sub">💵 معادل ${fmt(u.coinsToman)} تومان</div>
+        </div>
+      </div>
+
+      <div class="sec-title">⚡ دسترسی سریع</div>
+      <div class="quick-actions">
+        <div class="qa" onclick="location.href='#shop'" data-jump="shop" style="--qa1:#fbbf24;--qa2:#f59e0b">
+          <div class="ic">💰</div>
+          <div class="nm">شارژ</div>
+          <div class="ds">خرید سکه</div>
+        </div>
+        <div class="qa" data-jump="lb" data-lb="xp" style="--qa1:#8b5cf6;--qa2:#ec4899">
+          <div class="ic">🏆</div>
+          <div class="nm">لیدربورد</div>
+          <div class="ds">رتبه‌ها</div>
+        </div>
+        <div class="qa" data-jump="lb" data-lb="coins" style="--qa1:#22c55e;--qa2:#16a34a">
+          <div class="ic">💎</div>
+          <div class="nm">پولدارها</div>
+          <div class="ds">ثروتمندتر</div>
+        </div>
+        <div class="qa" data-jump="profile" style="--qa1:#22d3ee;--qa2:#0891b2">
+          <div class="ic">👤</div>
+          <div class="nm">پروفایل</div>
+          <div class="ds">آمار من</div>
+        </div>
+      </div>
+
+      <div class="sec-title">📊 آمار سریع</div>
+      <div class="grid">
+        <div class="card"><div class="k">🎮 کل بازی‌ها</div><div class="v">${fmt(u.stats.games)}</div></div>
+        <div class="card stat-w"><div class="k">🏆 بردها</div><div class="v">${fmt(u.stats.wins)}</div></div>
+        <div class="card stat-l"><div class="k">💀 باخت‌ها</div><div class="v">${fmt(u.stats.losses)}</div></div>
+        <div class="card stat-s"><div class="k">🔥 استریک</div><div class="v">${fmt(u.stats.winStreak)}</div><div class="sub">رکورد: ${fmt(u.stats.bestStreak)}</div></div>
+      </div>
+
+      <div class="sec-title">🎯 مأموریت‌های روزانه</div>
+      ${missionsHTML}
+
+      <div class="sec-title">🏅 دستاوردها <span class="badge-count">${fmt(unlockedAch)} از ${fmt(ACHIEVEMENTS.length)}</span></div>
+      <div class="ach-grid">
+        ${achPreviewHTML}
+      </div>
+    `;
+
+    // Animate xp bar
+    requestAnimationFrame(() => {
+      const fill = document.getElementById("xp-fill");
+      if (fill) setTimeout(() => { fill.style.width = Math.min(100, u.xpPct) + "%"; }, 150);
+    });
+
+    // Quick actions click handlers
+    box.querySelectorAll(".qa[data-jump]").forEach(el => {
+      el.addEventListener("click", () => {
+        const target = el.dataset.jump;
+        haptic("impact", "light");
+        if (target === "lb" && el.dataset.lb) {
+          currentLB = el.dataset.lb;
+          applyTheme(currentLB);
+        }
+        const btn = document.querySelector(`.nav-btn[data-tab="${target}"]`);
+        if (btn) btn.click();
+      });
+    });
+  }
+
+  // ============ PROFILE ============
   function renderProfile(u) {
     const box = document.getElementById("profile-content");
     const initial = (u.name || "?").trim().charAt(0).toUpperCase();
     const avatarUrl = ME?.photo_url || null;
-    const badges = getBadges(u);
-
     const avatarHTML = avatarUrl
-      ? `<img src="${esc(avatarUrl)}" alt="" onerror="this.style.display='none';this.parentNode.textContent='${esc(initial)}'">`
+      ? `<img src="${avatarUrl}" alt="" onerror="this.style.display='none';this.parentNode.textContent='${esc(initial)}'">`
       : esc(initial);
 
+    // Full achievements grid
+    const achGridHTML = ACHIEVEMENTS.map(a => {
+      const unlocked = a.check(u);
+      return `<div class="ach ${unlocked ? "unlocked" : "locked"}"><div class="em">${unlocked ? a.em : "🔒"}</div><div class="ttl">${esc(a.title)}</div><div class="lvl">${esc(a.desc)}</div></div>`;
+    }).join("");
+
     box.innerHTML = `
-      <div class="hero">
+      <div class="home-hero">
         <div class="hero-row">
           <div class="avatar-ring">
             <div class="avatar">${avatarHTML}</div>
@@ -781,10 +1032,8 @@
             <span>✨ <b>${fmt(u.xpCurrent)}</b> / ${fmt(u.xpNeeded)} XP</span>
             <span><b>${fmt(u.xpPct)}٪</b></span>
           </div>
-          <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+          <div class="xp-bar"><div class="xp-fill" id="xp-fill-p"></div></div>
         </div>
-
-        ${badges.length ? `<div class="badges">${badges.map(b => `<span class="badge ${b.c}">${b.t}</span>`).join("")}</div>` : ""}
       </div>
 
       <div class="grid">
@@ -811,25 +1060,28 @@
         <div class="card"><div class="k">🎯 حدس عدد</div><div class="v">${fmt(u.stats.guessWins)}</div></div>
         <div class="card"><div class="k">📈 نرخ برد</div><div class="v">${u.stats.games ? Math.round((u.stats.wins/u.stats.games)*100) : 0}<small style="font-size:14px">٪</small></div></div>
       </div>
+
+      <div class="sec-title">🏅 همه دستاوردها</div>
+      <div class="ach-grid">${achGridHTML}</div>
     `;
 
     requestAnimationFrame(() => {
-      const fill = document.getElementById("xp-fill");
+      const fill = document.getElementById("xp-fill-p");
       if (fill) setTimeout(() => { fill.style.width = Math.min(100, u.xpPct) + "%"; }, 150);
     });
   }
 
   // ============ LEADERBOARD ============
   const LB_THEMES = {
-    xp:       { c1: "#8b5cf6", c2: "#ec4899", accent: "#c4b5fd", icon: "⭐",  title: "قهرمانان لول",    desc: "بالاترین XP و لول" },
-    coins:    { c1: "#fbbf24", c2: "#f59e0b", accent: "#fde68a", icon: "💰", title: "پولدارها",        desc: "بیشترین سکه MBN" },
-    coinflip: { c1: "#22d3ee", c2: "#0ea5e9", accent: "#67e8f9", icon: "🎲", title: "خوش‌شانس‌ها",      desc: "بردهای بازی شانس" },
-    rps:      { c1: "#10b981", c2: "#059669", accent: "#6ee7b7", icon: "✊", title: "سلطان‌های RPS",   desc: "بردهای سنگ کاغذ قیچی" },
-    ttt:      { c1: "#f43f5e", c2: "#e11d48", accent: "#fda4af", icon: "❌⭕", title: "استادان دوز",      desc: "بردهای دوز" },
-    dice:     { c1: "#a855f7", c2: "#7c3aed", accent: "#d8b4fe", icon: "🎲", title: "تاس‌اندازها",     desc: "بردهای نبرد تاس" },
-    dart:     { c1: "#ef4444", c2: "#dc2626", accent: "#fca5a5", icon: "🎯", title: "تک‌تیراندازها",   desc: "بردهای دارت" },
-    casino:   { c1: "#eab308", c2: "#ca8a04", accent: "#fde047", icon: "🎰", title: "کازینو بازها",    desc: "بردهای کازینو" },
-    guess:    { c1: "#06b6d4", c2: "#0891b2", accent: "#67e8f9", icon: "🎯", title: "حدس‌زن‌ها",       desc: "بردهای حدس عدد" }
+    xp:       { c1: "#8b5cf6", c2: "#ec4899", accent: "#c4b5fd", icon: "⭐",   title: "قهرمانان لول",     desc: "بالاترین XP و لول" },
+    coins:    { c1: "#fbbf24", c2: "#f59e0b", accent: "#fde68a", icon: "💰",   title: "پولدارها",         desc: "بیشترین سکه MBN" },
+    coinflip: { c1: "#22d3ee", c2: "#0ea5e9", accent: "#67e8f9", icon: "🎲",   title: "خوش‌شانس‌ها",       desc: "بردهای بازی شانس" },
+    rps:      { c1: "#10b981", c2: "#059669", accent: "#6ee7b7", icon: "✊",   title: "سلطان‌های RPS",    desc: "بردهای سنگ کاغذ قیچی" },
+    ttt:      { c1: "#f43f5e", c2: "#e11d48", accent: "#fda4af", icon: "❌⭕", title: "استادان دوز",       desc: "بردهای دوز" },
+    dice:     { c1: "#a855f7", c2: "#7c3aed", accent: "#d8b4fe", icon: "🎲",   title: "تاس‌اندازها",      desc: "بردهای نبرد تاس" },
+    dart:     { c1: "#ef4444", c2: "#dc2626", accent: "#fca5a5", icon: "🎯",   title: "تک‌تیراندازها",    desc: "بردهای دارت" },
+    casino:   { c1: "#eab308", c2: "#ca8a04", accent: "#fde047", icon: "🎰",   title: "کازینو بازها",     desc: "بردهای کازینو" },
+    guess:    { c1: "#06b6d4", c2: "#0891b2", accent: "#67e8f9", icon: "🎯",   title: "حدس‌زن‌ها",        desc: "بردهای حدس عدد" }
   };
 
   const LB_TABS = [
@@ -873,6 +1125,9 @@
   async function loadLeaderboard(type, force = false) {
     const box = document.getElementById("lb-body");
     applyTheme(type);
+    // Also update active tab in UI if coming from quick action
+    const wrap = document.getElementById("lb-tabs");
+    wrap.querySelectorAll(".lb-tab").forEach(x => x.classList.toggle("active", x.dataset.k === type));
 
     if (!force && lbCache[type]) {
       renderLB(lbCache[type], type);
@@ -905,7 +1160,6 @@
     const unitMap = { xp: "XP", coins: "MBN" };
     const unit = unitMap[type] || "برد";
 
-    // Unique hero banner per tab
     let html = `
       <div class="lb-hero">
         <div class="lb-hero-inner">
@@ -929,15 +1183,9 @@
     if (top3.length >= 1) {
       const p1 = top3[0], p2 = top3[1], p3 = top3[2];
       html += `<div class="podium">`;
-      html += p2
-        ? `<div class="pod p2"><div class="medal">🥈</div><div class="nm">${esc(p2.name)}</div><div class="val">${fmt(p2.value)} <small>${unit}</small></div></div>`
-        : `<div></div>`;
-      html += p1
-        ? `<div class="pod p1"><div class="medal">🥇</div><div class="nm">${esc(p1.name)}</div><div class="val">${fmt(p1.value)} <small>${unit}</small></div></div>`
-        : `<div></div>`;
-      html += p3
-        ? `<div class="pod p3"><div class="medal">🥉</div><div class="nm">${esc(p3.name)}</div><div class="val">${fmt(p3.value)} <small>${unit}</small></div></div>`
-        : `<div></div>`;
+      html += p2 ? `<div class="pod p2"><div class="medal">🥈</div><div class="nm">${esc(p2.name)}</div><div class="val">${fmt(p2.value)} <small>${unit}</small></div></div>` : `<div></div>`;
+      html += p1 ? `<div class="pod p1"><div class="medal">🥇</div><div class="nm">${esc(p1.name)}</div><div class="val">${fmt(p1.value)} <small>${unit}</small></div></div>` : `<div></div>`;
+      html += p3 ? `<div class="pod p3"><div class="medal">🥉</div><div class="nm">${esc(p3.name)}</div><div class="val">${fmt(p3.value)} <small>${unit}</small></div></div>` : `<div></div>`;
       html += `</div>`;
     }
 
@@ -1000,20 +1248,7 @@
 
   // ============ MELLAT CARD ============
   const mellatCard = document.getElementById("mellatCard");
-  const cardCvv = document.getElementById("cardCvv");
-  const cvvIcon = document.getElementById("cvv-icon");
-  const cvvText = document.getElementById("cvv-text");
   const copyBtn = document.getElementById("copy-card");
-  const toggleBtn = document.getElementById("toggle-cvv");
-
-  let cvvShown = false;
-  toggleBtn.addEventListener("click", () => {
-    cvvShown = !cvvShown;
-    cardCvv.textContent = cvvShown ? "۷۲۱" : "•••";
-    cvvIcon.textContent = cvvShown ? "🙈" : "👁";
-    cvvText.textContent = cvvShown ? "مخفی کردن" : "نمایش CVV2";
-    haptic("impact", "light");
-  });
 
   copyBtn.addEventListener("click", async () => {
     try {
@@ -1036,7 +1271,6 @@
     }
   });
 
-  // Card tilt
   let tiltActive = false;
   function setTilt(x, y) {
     const rect = mellatCard.getBoundingClientRect();
@@ -1062,7 +1296,7 @@
   // ============ INIT ============
   applyTheme("xp");
   buildLBTabs();
-  loadProfile();
+  loadUser();
 })();
 </script>
 </body>

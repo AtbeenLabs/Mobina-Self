@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 
 const WEBAPP_URL = String(process.env.WEBAPP_URL || "").trim();
 const TOKEN = String(process.env.BOT_TOKEN || "");
-if (!TOKEN) throw new Error("توکن BOT_TOKEN در فایل .env تنظیم نشده است.");
+if (!TOKEN) throw new Error("BOT_TOKEN داخل فایل .env قرار نگرفته است.");
 
 const OWNER_ID = Number(process.env.BOT_OWNER_ID || 0);
 const EXTRA_ADMIN_IDS = new Set(
@@ -744,7 +744,7 @@ function numberGuessKeyboard(userId: number, bet: number) {
     return Markup.inlineKeyboard([
         buttons.slice(0, 4),
         buttons.slice(4),
-        [styledCallback("↩️ انصراف", `ng:cancel:${userId}`, "danger")]
+        [styledCallback("↩️ بی‌خیال", `ng:cancel:${userId}`, "danger")]
     ]);
 }
 
@@ -752,7 +752,7 @@ function numberGuessPrompt(bet: number) {
     return [
         "🎯 <b>حدس عدد</b>",
         `🪙 شرط: <b>${copyNumber(bet)} MBN</b>`,
-        "👇 یکی از عددهای ۱ تا ۷ رو انتخاب کن و شانس خودت رو محک بزن!"
+        "👇 یکی از ۱ تا ۷ رو انتخاب کن"
     ].join("\n");
 }
 
@@ -982,9 +982,9 @@ function xpResultLine(user: User, award: { before: { level: number }; after: { l
     const levelUp = award.after.level > award.before.level;
     const levelDown = award.after.level < award.before.level;
     const levelText = levelUp
-        ? `🎉 <b>لول بالاتر رفت! 🚀 حالا لول تو ${award.after.level} ـه</b>`
+        ? `🎉 <b>لول آپ شد: ${award.after.level}</b>`
         : levelDown
-            ? `😬 <b>این راند کمی XP کم کردی؛ لولت شد ${award.after.level}</b>`
+            ? `😬 <b>یه لول افتادی: ${award.after.level}</b>`
             : `⭐ <b>لول ${award.after.level}</b>`;
     const deltaText = award.delta > 0
         ? `+${formatNumber(award.delta)}`
@@ -1000,9 +1000,9 @@ function xpRulesText() {
 
 🏆 ببری: XP کامل
 💀 ببازی: نصف XP که قرار بود بگیری، می‌پره
-🤝 مساوی شد! این راند بدون برنده به پایان رسید.: بخشی از XP رو می‌گیری
+🤝 مساوی: یه XP کوچیک
 
-🚀 XP جمع کن، لولت رو بالا ببر و رکورد خودت رو بساز!`;
+🎯 XP جمع کن، لولت بره بالا!`;
 }
 
 function xpText(user: User) {
@@ -1103,7 +1103,7 @@ function profileText(user: User) {
 
 function topText() {
     const users = Object.values(db.users);
-    if (!users.length) return "🏆 هنوز کسی وارد جدول قهرمان‌ها نشده؛ اولین نفر تو باش! 🏆";
+    if (!users.length) return "🏆 هنوز کسی توی جدول قهرمان‌ها جا نگرفته.";
     const topXp = [...users].sort((a, b) => (b.stats.xp - a.stats.xp) || (b.stats.wins - a.stats.wins)).slice(0, 10);
     return [
         "🏆 <b>لیدربورد مبینا</b>",
@@ -1126,7 +1126,7 @@ function topText() {
 function leaderLine(users: User[], key: keyof Stats) {
     const sorted = [...users].sort((a, b) => Number(b.stats[key] || 0) - Number(a.stats[key] || 0));
     const top = sorted[0];
-    if (!top || Number(top.stats[key] || 0) <= 0) return "هنوز بردی برای این بخش ثبت نشده؛ اولین رکورد رو تو بزن! 🔥";
+    if (!top || Number(top.stats[key] || 0) <= 0) return "هنوز بردی برای این بخش ثبت نشده؛ اولین نفر تو باش! 🔥";
     return `${shortUser(top)} • ${formatNumber(Number(top.stats[key] || 0))} برد`;
 }
 
@@ -1174,11 +1174,11 @@ async function sendPrivate(ctx: Context, text: string, keyboard?: any) {
                 parse_mode: "HTML",
                 reply_markup: (keyboard ?? privateKeyboardFor(ctx.from.id)).reply_markup
             });
-            await ctx.reply("📩 پنل مدیریت رو برات فرستادم توی پیوی 😎");
+            await ctx.reply("📩 پنل رو فرستادم توی پیویت 😎");
         } catch {
             const username = ctx.botInfo.username;
             const url = `https://t.me/${username}?start=panel`;
-            await ctx.reply("💌 اول بیا توی پیوی بات و Start رو بزن تا پنلت رو باز کنیم 😉", {
+            await ctx.reply("💌 یه سر بیا پیوی بات و Start رو بزن تا پنل رو برات باز کنم 😉", {
                 ...Markup.inlineKeyboard([[styledUrl("✉️ باز کردن پیوی", url, "primary")]])
             });
         }
@@ -1226,7 +1226,7 @@ function casinoBetKeyboard(userId: number, coins: number) {
 
 function gameButtons(game: BaseGame) {
     return Markup.inlineKeyboard([[
-        styledCallback("🔥 بزن بریم!!", `game:join:${game.id}`, "success"),
+        styledCallback("🔥 بزن بریم!", `game:join:${game.id}`, "success"),
         styledCallback("🛑 لغو بازی", `game:cancel:${game.id}`, "danger")
     ]]);
 }
@@ -1250,9 +1250,9 @@ function waitingGameText(game: BaseGame) {
         `👤 ${warmName(game.creatorName)} منتظر یه حریف خفنـه!`,
         `⭐ لول سازنده: <b>${levelSnapshot(getStoredUser(game.creatorId) || ({ stats: { xp: 0 } } as any)).level}</b>`,
         `🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>`,
-        `🏆 جایزه‌ی راند: <b>${copyNumber(game.wager * 2)} MBN</b>`,
+        `🏆 برنده این راند: <b>${copyNumber(game.wager * 2)} MBN</b>`,
         "",
-        "👇 هرکی آماده‌ست، دکمه‌ی ورود رو بزن و وارد نبرد شو! ⚔️"
+        "👇 هرکی آماده‌ست، وارد نبرد شو!"
     ].join("\n");
 }
 
@@ -1318,7 +1318,7 @@ async function createGame(ctx: Context, type: GameType, wager: number) {
         await replyWarm(
             ctx,
             `😅 <b>موجودی کافی نیست!</b>\n\n` +
-            `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>\n` +
+            `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n` +
             `🎯 شرط انتخابی: <b>${copyNumber(wager)} MBN</b>\n\n` +
             `💡 یه مبلغ کمتر انتخاب کن و دوباره شانس خودت رو امتحان کن 😉`,
             "lose",
@@ -1359,7 +1359,7 @@ async function createGame(ctx: Context, type: GameType, wager: number) {
                     };
 
     if (!reserveCreatorStake(game)) {
-        await replyWarm(ctx, "😕 ثبت شرط انجام نشد. هیچ مبلغی از حسابت کم نشده؛ دوباره امتحان کن 👀", "game");
+        await replyWarm(ctx, "😅 شرطت قفل نشد؛ دوباره بزن 👀", "game");
         return;
     }
 
@@ -1392,15 +1392,15 @@ async function createGame(ctx: Context, type: GameType, wager: number) {
 
 async function updateRps(ctx: Context, game: RPSGame) {
     const ready = Number(Boolean(game.creatorChoice)) + Number(Boolean(game.opponentChoice));
-    const vibe = ready === 0 ? "😈 هر دوتون انتخابتون رو بزنید؛ ببینیم قهرمان این راند کیه! 🔥"
-        : ready === 1 ? "👀 انتخاب نفر اول ثبت شد! 👀 حالا نوبت نفر دومه."
-        : "⚡ هر دو انتخاب ثبت شد! ⚡ حالا وقت اعلام نتیجه‌ست...";
+    const vibe = ready === 0 ? "😈 هر دوتون انتخاب کنین؛ ببینیم کی قراره برنده بشه!"
+        : ready === 1 ? "👀 یکی انتخابش رو ثبت کرده... حالا نوبت نفر بعدیه!"
+        : "⚡ انتخاب هر دوتون ثبت شد؛ وقتشه ببینیم کی برده!";
     await safeEdit(ctx,
         `✊ <b>نبرد سنگ، کاغذ، قیچی</b>\n\n` +
-        `👤 ${warmName(game.creatorName)} ➜ ${game.creatorChoice ? "✅ انتخاب ثبت شد" : "⏳ هنوز انتخاب نکرده"}\n` +
-        `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${game.opponentChoice ? "✅ انتخاب ثبت شد" : "⏳ هنوز انتخاب نکرده"}\n\n` +
+        `👤 ${warmName(game.creatorName)} ➜ ${game.creatorChoice ? "✅ انتخاب شد" : "⏳ هنوز انتخاب نکرده..."}\n` +
+        `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${game.opponentChoice ? "✅ انتخاب شد" : "⏳ هنوز انتخاب نکرده..."}\n\n` +
         `🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n` +
-        `👇 انتخابت رو ثبت کن؛ این راند می‌تونه مال تو باشه! 😎`,
+        `👇 انتخابت رو بزن؛ بقیه‌ش با شانس و مهارته!`,
         { parse_mode: "HTML", ...playingRpsKeyboard(game.id) }
     );
 }
@@ -1434,12 +1434,11 @@ async function updateTtt(ctx: Context, game: TicTacToeGame) {
     if (!game.opponentName) return;
     const turnName = game.turn === game.creatorId ? game.creatorName : game.opponentName;
     await safeEdit(ctx,
-        `❌⭕ <b>نبرد دوز</b> • 🔥 راند داغه!\n\n` +
+        `❌⭕ <b>دوز</b>  •  🔥 راند داغه!\n\n` +
         `❌ ${warmName(game.creatorName)}\n⭕ ${warmName(game.opponentName)}\n\n` +
         `${tttBoard(game.board)}\n\n` +
         `🪙 <b>${copyNumber(game.wager)} MBN</b>  •  🏆 <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
-        `🎯 نوبت <b>${warmName(turnName)}</b> ـه!
-👇 حرکتت رو انتخاب کن`,
+        `🎯 نوبت <b>${warmName(turnName)}</b> ـه 👇`,
         { parse_mode: "HTML", ...tttKeyboard(game) }
     );
 }
@@ -1459,24 +1458,58 @@ function checkWinner(board: string[]) {
 
 async function finishCoinflip(ctx: Context, game: CoinflipGame) {
     await withMutationLock(async () => {
-        const winnerId = random50(game.creatorId, game.opponentId!);
-        const settled = settleWinner(game, winnerId);
-        if (!settled) return;
-        await sendStickerSafe(ctx, "win");
-        const streak = settled.winner.stats.winStreak;
-        await safeEdit(ctx,
-            `🏁 <b>بازی شانس به پایان رسید!</b>\n\n` +
-            `👑 <b>برنده: ${warmName(settled.winner.name)}</b>\n` +
-            `😵 <b>بازنده: ${warmName(settled.loser.name)}</b>\n\n` +
-            `💰 جایزه‌ی برنده: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
-            `🪙 موجودی برنده: <b>${copyNumber(settled.winner.coins)} MBN</b>\n` +
-            `🪙 موجودی بازنده: <b>${copyNumber(settled.loser.coins)} MBN</b>\n\n` +
-            `${xpResultLine(settled.winner, settled.winnerXp)}\n` +
-            `${xpResultLine(settled.loser, settled.loserXp)}` ,
-            { parse_mode: "HTML" }
-        );
-        delete db.games[game.id];
-        saveDatabase(db);
+        let settledSuccessfully = false;
+        try {
+            const winnerId = random50(game.creatorId, game.opponentId!);
+            const settled = settleWinner(game, winnerId);
+            if (!settled) {
+                refundGame(game);
+                delete db.games[game.id];
+                saveDatabase(db);
+                await safeEdit(
+                    ctx,
+                    `⚠️ <b>یه خطا موقع قرعه‌کشی پیش اومد.</b>\n\n` +
+                    `💰 نگران نباش؛ مبلغ شرط هر دو نفر کامل برگشت خورد.\n` +
+                    `🔄 می‌تونید دوباره بازی رو شروع کنید.`,
+                    { parse_mode: "HTML" }
+                );
+                return;
+            }
+            settledSuccessfully = true;
+            await sendStickerSafe(ctx, "win");
+            const streak = settled.winner.stats.winStreak;
+            await safeEdit(ctx,
+                `🏁 <b>بازی شانس تموم شد!</b>\n\n` +
+                `👑 برنده: <b>${warmName(settled.winner.name)}</b>\n` +
+                `😵 بازنده: <b>${warmName(settled.loser.name)}</b>\n\n` +
+                `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
+                `🪙 موجودی برنده: <b>${copyNumber(settled.winner.coins)}</b>\n` +
+                `🪙 موجودی بازنده: <b>${copyNumber(settled.loser.coins)}</b>\n\n` +
+                `${xpResultLine(settled.winner, settled.winnerXp)}\n` +
+                `${xpResultLine(settled.loser, settled.loserXp)}` ,
+                { parse_mode: "HTML" }
+            );
+            delete db.games[game.id];
+            saveDatabase(db);
+        } catch (error) {
+            console.error("coinflip finish error:", error);
+            if (!settledSuccessfully && !game.settled) {
+                try {
+                    refundGame(game);
+                } catch (refundError) {
+                    console.error("coinflip refund error:", refundError);
+                }
+            }
+            delete db.games[game.id];
+            saveDatabase(db);
+            await safeEdit(
+                ctx,
+                `🚨 <b>بازی با خطا مواجه شد.</b>\n\n` +
+                `💰 تلاش برای برگرداندن مبلغ شرط انجام شد.\n` +
+                `🔄 لطفاً دوباره بازی رو شروع کنید.`,
+                { parse_mode: "HTML" }
+            );
+        }
     });
 }
 
@@ -1515,10 +1548,9 @@ bot.start(async ctx => {
           `من اینجام که چت رو با رقابت، شانس، هیجان و جایزه گرم‌تر کنیم 😎🔥\n\n` +
           `🪙 هدیهٔ شروع: <b>+${copyNumber(STARTING_COINS)} MBN</b>\n` +
           `💰 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n\n` +
-          `😎 بیا بازی کنیم؛ XP بگیر، سکه جمع کن و رکورد بزن! 🔥`
-        : `👋 <b>خوش برگشتی، ${warmName(user.name)}!</b> 🫶\n\n` +
-          `💰 موجودی فعلیت <b>${copyNumber(user.coins)} MBN</b> ـه.
-🔥 آماده‌ای برای یه راند دیگه؟\n` +
+          `😎 بیا بازی کنیم؛ XP، سکه و کلی رقابت داریم!`
+        : `👋 <b>خوش برگشتی ${warmName(user.name)}!</b> 🫶\n\n` +
+          `💰 موجودی فعلیت <b>${copyNumber(user.coins)} MBN</b> ـه؛ بزن بریم یه راند دیگه! 😎\n` +
           `🎯 یه راند دیگه بزنیم؟ 😎`;
 
     await sendStickerSafe(ctx, created ? "welcome" : "game");
@@ -1566,8 +1598,8 @@ function referralText(userId: number, botUsername: string) {
 
 function referralKeyboard(userId: number) {
     return Markup.inlineKeyboard([
-        [styledCallback("🔄 تازه‌سازی", "pv:referral", "primary")],
-        [styledCallback("↩️ برگشت به منو", "pv:home", "primary")],
+        [styledCallback("🔄 بروزرسانی", "pv:referral", "primary")],
+        [styledCallback("↩️ برگشت", "pv:home", "primary")],
     ]);
 }
 
@@ -1683,7 +1715,7 @@ bot.on(message("new_chat_members"), async ctx => {
             } else {
                 await ctx.reply(
                     `🎉 ${mention(member)} <b>خوش اومدی!</b> 🫶\n\n` +
-                    `💰 موجودی: <b>${copyNumber(user.coins)} MBN</b>\n` +
+                    `💰 موجودیت: <b>${copyNumber(user.coins)} MBN</b>\n` +
                     `😎 بزن بریم بازی!`,
                     { parse_mode: "HTML" }
                 );
@@ -1716,7 +1748,7 @@ bot.command("top", async ctx => {
 
 bot.command("admin", async ctx => {
     if (!ctx.from || !isAdmin(ctx.from.id)) {
-        await replyWarm(ctx, "⛔ دسترسی به این بخش فقط برای ادمین‌هاست 🛡️", undefined, { parse_mode: "HTML" });
+        await replyWarm(ctx, "⛔ اوپس! این بخش مخصوص ادمین‌هاست 😄🛡", undefined, { parse_mode: "HTML" });
         return;
     }
 
@@ -1765,7 +1797,7 @@ bot.action(/^pv:(home|balance|profile|top|missions|wheel|casino|referral)$/, asy
     if (key === "casino") {
         await ctx.editMessageText(
             `🎰 <b>کازینو حرفه‌ای</b>\n\n` +
-            `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>\n` +
+            `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n` +
             `🎯 حداقل شرط: <b>${copyNumber(MIN_GAME_BET)} MBN</b>\n\n` +
             `👇 مبلغ شرطت رو انتخاب کن:`,
             { parse_mode: "HTML", ...casinoBetKeyboard(user.id, user.coins) }
@@ -1776,7 +1808,7 @@ bot.action(/^pv:(home|balance|profile|top|missions|wheel|casino|referral)$/, asy
 
 bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|admins|owner|levels|charge100|charge1000|cancel):?(.*)$/, async ctx => {
     if (!ctx.from || !isAdmin(ctx.from.id)) {
-        await safeAnswerCbQuery(ctx, "⛔ دسترسی به این بخش فقط برای ادمین‌هاست.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ دسترسی این بخش رو نداری.", { show_alert: true });
         return;
     }
     await withMutationLock(async () => {
@@ -1787,7 +1819,7 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
     if (action === "cancel") {
         const game = actionId ? db.games[actionId] : undefined;
         if (!game || !ACTIVE_GAME_STATUSES.has(game.status)) {
-            await safeAnswerCbQuery(ctx, "❌ این بازی پیدا نمی‌شه؛ احتمالاً به پایان رسیده یا لغو شده.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "❌ این بازی دیگه پیدا نمی‌شه؛ احتمالاً تموم شده یا لغو شده.", { show_alert: true });
             return;
         }
         const refunded = refundGame(game);
@@ -1854,7 +1886,7 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
             : "🎮 بازی فعالی نیست.";
         const rows: any[][] = [];
         for (const game of games.slice(0, 10)) rows.push([styledCallback(`✖️ لغو ${gameTypeTitle(game.type)} ${formatNumber(game.wager)}`, `admin:cancel:${game.id}`, "danger")]);
-        rows.push([styledCallback("↩️ برگشت به منو", "admin:home", "primary")]);
+        rows.push([styledCallback("↩️ برگشت", "admin:home", "primary")]);
         await ctx.editMessageText(text, { parse_mode: "HTML", reply_markup: Markup.inlineKeyboard(rows).reply_markup });
         return;
     }
@@ -1948,14 +1980,14 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
 
     if (action === "charge100" || action === "charge1000") {
         if (!isOwner(ctx.from.id)) {
-            await safeAnswerCbQuery(ctx, "⛔ این عملیات فقط برای مالک بات مجازه.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "فقط مالک.", { show_alert: true });
             return;
         }
         const amount = action === "charge100" ? 100 : 1000;
         const owner = getStoredUser(ctx.from.id) ?? getUser(ctx.from).user;
         const before = owner.coins;
         if (!addCoinsSafe(owner, amount)) {
-            await replyWarm(ctx, "😵‍💫 موجودی به سقف امن رسیده؛ فعلاً این عملیات قابل انجام نیست.", "game");
+            await replyWarm(ctx, "😵‍💫 موجودی به سقف امن رسیده؛ فعلاً این یکی رو نمی‌شه انجام داد.", "game");
             return true;
         }
         owner.updatedAt = Date.now();
@@ -1970,7 +2002,7 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
 
     if (action === "owner") {
         if (!isOwner(ctx.from.id)) {
-            await safeAnswerCbQuery(ctx, "👑 این بخش فقط برای مالک باته.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "👑 این بخش فقط برای سازندهٔ باته.", { show_alert: true });
             return;
         }
         const totalUsers = Object.keys(db.users).length;
@@ -1995,7 +2027,7 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
             "",
             "کسر موجودی از کاربر:",
             "<code>کسر 100</code> را روی پیام همان کاربر Reply کن.",
-            "🔐 فقط مالک و ادمین‌های مجاز اجازه استفاده از این دستور رو دارن.",
+            "🔐 🔐 فقط مالک و ادمین‌های مجاز اجازه استفاده از این دستور رو دارن.",
             "💼 مبلغ کسرشده مستقیماً به حساب مالک منتقل می‌شود.",
             "",
             "انتقال بین کاربران:",
@@ -2011,7 +2043,7 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
 
     if (action === "admins") {
         if (!isOwner(ctx.from.id)) {
-            await safeAnswerCbQuery(ctx, "👑 این بخش فقط برای مالک باته.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "👑 این بخش فقط برای سازندهٔ باته.", { show_alert: true });
             return;
         }
         const lines = db.admins.map(id => {
@@ -2095,7 +2127,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
     if (!ctx.from || !game.opponentId || game.status !== "playing" || game.settled) return;
 
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
 
@@ -2103,7 +2135,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
     const currentMode = isCreator ? game.creatorMode : game.opponentMode;
     const currentExact = isCreator ? game.creatorExact : game.opponentExact;
     if (!currentMode) {
-        await safeAnswerCbQuery(ctx, "اول پیش‌بینی خودت رو انتخاب کن؛ بعد تاس رو بنداز.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "اول پیش‌بینی‌ات را انتخاب کن.", { show_alert: true });
         await safeEdit(ctx,
             `🎲 <b>نبرد تاس</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
@@ -2119,7 +2151,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
 
     const currentRoll = isCreator ? game.creatorRoll : game.opponentRoll;
     if (currentRoll != null) {
-        await safeAnswerCbQuery(ctx, "🎲 تاس رو قبلاً انداختی 😄 نتیجه هم ثبت شده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "تاس خودت قبلاً انداخته شده 😄", { show_alert: true });
         return;
     }
 
@@ -2127,7 +2159,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
         const msg = await ctx.telegram.sendDice(game.chatId, { emoji: "🎲" });
         const value = Number(msg?.dice?.value);
         if (!Number.isInteger(value) || value < 1 || value > 6) {
-            await safeAnswerCbQuery(ctx, "⚠️ نتیجه تاس معتبر دریافت نشد؛ دوباره امتحان کن.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "نتیجه تاس نامعتبر بود.", { show_alert: true });
             return;
         }
 
@@ -2135,7 +2167,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
         else game.opponentRoll = value;
 
         saveDatabase(db);
-        await safeAnswerCbQuery(ctx, "🎲 تاس ثبت شد! حالا بریم سراغ نتیجه 🔥");
+        await safeAnswerCbQuery(ctx, "تاس ✅ ثبت شد؛ بزن بریم!");
 
         if (game.creatorRoll == null || game.opponentRoll == null) {
             await safeEdit(ctx,
@@ -2233,7 +2265,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
         saveDatabase(db);
     } catch (error) {
         console.error("group dice error:", error);
-        await safeAnswerCbQuery(ctx, "⚠️ یه خطای موقت پیش اومد؛ چیزی از حسابت کم نشده. دوباره امتحان کن.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "یه مشکلی پیش اومد؛ دوباره بزن.", { show_alert: true });
     }
 }
 
@@ -2243,7 +2275,7 @@ async function rollGroupDart(ctx: any, game: DartGame) {
     const isCreator = ctx.from.id === game.creatorId;
     const current = isCreator ? game.creatorRoll : game.opponentRoll;
     if (current != null) {
-        await safeAnswerCbQuery(ctx, "🎯 این راند رو قبلاً زدی 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "این راند رو زدی 😄", { show_alert: true });
         return;
     }
     try {
@@ -2252,7 +2284,7 @@ async function rollGroupDart(ctx: any, game: DartGame) {
         if (!Number.isInteger(value)) throw new Error("Telegram dart value missing");
         if (isCreator) game.creatorRoll = value; else game.opponentRoll = value;
         saveDatabase(db);
-        await safeAnswerCbQuery(ctx, "✅ ثبت شد! بزن بریم 🔥");
+        await safeAnswerCbQuery(ctx, "✅ ثبت شد؛ بزن بریم!");
         if (game.creatorRoll == null || game.opponentRoll == null) {
             await safeEdit(ctx,
                 `🎯 <b>نبرد دارت</b>\n\n` +
@@ -2278,8 +2310,8 @@ async function rollGroupDart(ctx: any, game: DartGame) {
             await sendStickerSafe(ctx,special?"dartWin":"dart");
             await safeEdit(ctx,
                 `🎯 <b>دارت تموم شد!</b>\n\n`+
-                `👑 <b>برنده: ${warmName(settled.winner.name)}</b> • <b>${settled.winner.id===game.creatorId?a:b}</b>${special?"\n🎯 ضربه به مرکز!":""}\n`+
-                `😵 <b>بازنده: ${warmName(settled.loser.name)}</b> • <b>${settled.loser.id===game.creatorId?a:b}</b>\n\n`+
+                `👑 برنده: <b>${warmName(settled.winner.name)}</b> • <b>${settled.winner.id===game.creatorId?a:b}</b>${special?"\n🎯 ضربه به مرکز!":""}\n`+
+                `😵 بازنده: <b>${warmName(settled.loser.name)}</b> • <b>${settled.loser.id===game.creatorId?a:b}</b>\n\n`+
                 `🏆 جایزه: <b>${copyNumber(game.wager*2)} MBN</b>\n\n`+
                 `${xpResultLine(settled.winner, settled.winnerXp)}\n`+
                 `${xpResultLine(settled.loser, settled.loserXp)}`,
@@ -2289,21 +2321,21 @@ async function rollGroupDart(ctx: any, game: DartGame) {
         saveDatabase(db);
     } catch(error) {
         console.error("group dart error:", error);
-        await safeAnswerCbQuery(ctx,"⚠️ یه خطای موقت پیش اومد؛ چیزی از حسابت کم نشده. دوباره امتحان کن.",{show_alert:true});
+        await safeAnswerCbQuery(ctx,"یه مشکلی پیش اومد؛ دوباره بزن.",{show_alert:true});
     }
 }
 
 async function rollGroupCasino(ctx: any, game: CasinoGame) {
     if (!ctx.from || !game.opponentId || game.status !== "playing" || game.settled) return;
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
 
     const isCreator = ctx.from.id === game.creatorId;
     const current = isCreator ? game.creatorRoll : game.opponentRoll;
     if (current != null) {
-        await safeAnswerCbQuery(ctx, "🎰 اسپینت رو قبلاً ثبت کردی 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "اسپینت قبلاً ثبت شده 😄", { show_alert: true });
         return;
     }
 
@@ -2311,7 +2343,7 @@ async function rollGroupCasino(ctx: any, game: CasinoGame) {
         const msg = await ctx.telegram.sendDice(game.chatId, { emoji: "🎰" });
         const value = Number(msg?.dice?.value);
         if (!Number.isInteger(value) || value < 1 || value > 64) {
-            await safeAnswerCbQuery(ctx, "⚠️ نتیجه کازینو معتبر دریافت نشد؛ دوباره امتحان کن.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "نتیجه کازینو نامعتبر بود.", { show_alert: true });
             return;
         }
 
@@ -2319,7 +2351,7 @@ async function rollGroupCasino(ctx: any, game: CasinoGame) {
         else game.opponentRoll = value;
 
         saveDatabase(db);
-        await safeAnswerCbQuery(ctx, "اسپین ✅ ثبت شد! بزن بریم 🔥");
+        await safeAnswerCbQuery(ctx, "اسپین ✅ ثبت شد؛ بزن بریم!");
 
         const creatorReady = game.creatorRoll != null;
         const opponentReady = game.opponentRoll != null;
@@ -2329,7 +2361,7 @@ async function rollGroupCasino(ctx: any, game: CasinoGame) {
                 `👤 ${warmName(game.creatorName)} ➜ ${creatorReady ? "✅ آماده" : "⏳ در انتظار اسپین"}\n` +
                 `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${opponentReady ? "✅ آماده" : "⏳ در انتظار اسپین"}\n\n` +
                 `🪙 شرط هر نفر: <b>${copyNumber(game.wager)} MBN</b>\n` +
-                `🏆 جایزه‌ی راند: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
+                `🏆 برنده این راند: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
                 `👇 هر دو نفر اسپین کنن تا نتیجه مشخص بشه`,
                 { parse_mode: "HTML", ...casinoGroupButtons(game) }
             );
@@ -2365,12 +2397,12 @@ async function rollGroupCasino(ctx: any, game: CasinoGame) {
             await sendStickerSafe(ctx, "casinoWin");
             await safeEdit(ctx,
                 `🎰 <b>نبرد کازینو تموم شد!</b>\n\n` +
-                `👑 <b>برنده: ${warmName(settled.winner.name)}</b>\n` +
+                `👑 برنده: <b>${warmName(settled.winner.name)}</b>\n` +
                 `${casinoCombo(winnerRoll)}\n🎯 ${escapeHTML(winnerOutcome.label)}\n\n` +
-                `😵 <b>بازنده: ${warmName(settled.loser.name)}</b>\n` +
+                `😵 بازنده: <b>${warmName(settled.loser.name)}</b>\n` +
                 `${casinoCombo(loserRoll)}\n🎯 ${escapeHTML(loserOutcome.label)}\n\n` +
-                `💰 جایزه‌ی برنده: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
-                `🪙 موجودی برنده: <b>${copyNumber(settled.winner.coins)} MBN</b>`,
+                `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
+                `🪙 موجودی برنده: <b>${copyNumber(settled.winner.coins)}</b>`,
                 { parse_mode: "HTML" }
             );
         }
@@ -2379,7 +2411,7 @@ async function rollGroupCasino(ctx: any, game: CasinoGame) {
         saveDatabase(db);
     } catch (error) {
         console.error("group casino roll error:", error);
-        await safeAnswerCbQuery(ctx, "⚠️ کازینو اجرا نشد. نگران نباش؛ شرطی از حسابت کم نشده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "کازینو اجرا نشد؛ دوباره بزن.", { show_alert: true });
     }
 }
 
@@ -2387,7 +2419,7 @@ bot.action(/^game:casino-roll:(.+)$/, async ctx => {
     if (!ctx.from || !ctx.chat) return;
     const game = db.games[ctx.match[1]] as CasinoGame | undefined;
     if (!game || game.type !== "casino" || game.chatId !== ctx.chat.id || game.status !== "playing" || !game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند به پایان رسیده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند تموم شده.", { show_alert: true });
         return;
     }
     await withMutationLock(() => rollGroupCasino(ctx, game));
@@ -2397,11 +2429,11 @@ bot.action(/^gd:mode:(.+):(even|odd|exact)$/, async ctx => {
     if (!ctx.from || !ctx.chat) return;
     const game = db.games[ctx.match[1]] as DiceGame | undefined;
     if (!game || game.type !== "dice" || game.status !== "playing" || game.chatId !== ctx.chat.id) {
-        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند به پایان رسیده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند تموم شده.", { show_alert: true });
         return;
     }
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
     const isCreator = ctx.from.id === game.creatorId;
@@ -2418,7 +2450,7 @@ bot.action(/^gd:mode:(.+):(even|odd|exact)$/, async ctx => {
 
     if (isCreator) game.creatorMode = mode; else game.opponentMode = mode;
     saveDatabase(db);
-    await safeAnswerCbQuery(ctx, "پیش‌بینی ✅ ثبت شد! بزن بریم 🔥");
+    await safeAnswerCbQuery(ctx, "پیش‌بینی ✅ ثبت شد؛ بزن بریم!");
     await safeEdit(ctx,
         `🎲 <b>نبرد تاس</b>\n\n` +
         `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
@@ -2434,11 +2466,11 @@ bot.action(/^gd:pick:(.+):([1-6])$/, async ctx => {
     if (!ctx.from || !ctx.chat) return;
     const game = db.games[ctx.match[1]] as DiceGame | undefined;
     if (!game || game.type !== "dice" || game.status !== "playing" || game.chatId !== ctx.chat.id) {
-        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند به پایان رسیده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند تموم شده.", { show_alert: true });
         return;
     }
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
     const exact = Number(ctx.match[2]);
@@ -2450,7 +2482,7 @@ bot.action(/^gd:pick:(.+):([1-6])$/, async ctx => {
         game.opponentExact = exact;
     }
     saveDatabase(db);
-    await safeAnswerCbQuery(ctx, `عدد دقیق ${exact} ✅ ثبت شد! بزن بریم 🔥`);
+    await safeAnswerCbQuery(ctx, `عدد دقیق ${exact} ✅ ثبت شد؛ بزن بریم!`);
     await safeEdit(ctx,
         `🎲 <b>نبرد تاس</b>\n\n` +
         `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
@@ -2476,11 +2508,11 @@ bot.action(/^gd:back:(.+)$/, async ctx => {
 bot.action(/^game:dice-roll:(.+)$/, async ctx => {
     const game = db.games[ctx.match[1]] as DiceGame | undefined;
     if (!game || game.type !== "dice" || !ctx.chat || game.chatId !== ctx.chat.id) {
-        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند به پایان رسیده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند تموم شده.", { show_alert: true });
         return;
     }
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
     const diceGame = game as DiceGame;
@@ -2495,11 +2527,11 @@ bot.action(/^game:dice-roll:(.+)$/, async ctx => {
 bot.action(/^game:dart-roll:(.+)$/, async ctx => {
     const game = db.games[ctx.match[1]] as DartGame | undefined;
     if (!game || game.type !== "dart" || !ctx.chat || game.chatId !== ctx.chat.id) {
-        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند به پایان رسیده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی دیگه فعال نیست؛ احتمالاً راند تموم شده.", { show_alert: true });
         return;
     }
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
     await withMutationLock(() => rollGroupDart(ctx, game));
@@ -2511,7 +2543,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     const game = db.games[ctx.match[1]];
 
     if (!game || !ctx.chat || game.chatId !== ctx.chat.id) {
-        await safeAnswerCbQuery(ctx, "⚠️ این بازی مربوط به این گروه نیست.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی مربوط به این گروهه نیست.", { show_alert: true });
         return;
     }
     if (!game || game.status !== "waiting" || game.settled) {
@@ -2520,13 +2552,13 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     }
 
     if (ctx.from.id === game.creatorId) {
-        await safeAnswerCbQuery(ctx, "😄 این بازی رو خودت ساختی؛ برای شروع منتظر یه حریف دیگه باش!", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "😄 این بازی مال خودته؛ یه حریف دیگه لازمه!", { show_alert: true });
         return;
     }
 
     const { user: opponent } = getUser(ctx.from);
     if (opponent.coins < game.wager) {
-        await safeAnswerCbQuery(ctx, "💰 موجودی کافی نیست؛ برای پیوستن به این بازی سکه کافی نداری.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, `😅 موجودی ${copyNumber(opponent.coins)} MBN ـه؛ برای این بازی ${copyNumber(game.wager)} MBN لازمه.`, { show_alert: true });
         return;
     }
 
@@ -2538,12 +2570,10 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     game.status = "playing";
     game.createdAt = Date.now();
     saveDatabase(db);
-    await safeAnswerCbQuery(ctx, "🔥 بزن بریم!! بازی شروع شد");
+    await safeAnswerCbQuery(ctx, "🔥 بزن بریم! بازی شروع شد");
 
     if (game.type === "coinflip") {
-        await safeEdit(ctx, `🎲 <b>در حال قرعه‌کشی...</b>
-
-⏳ ببینیم شانس با کیه!`, { parse_mode: "HTML" });
+        await safeEdit(ctx, "🎲 <b>در حال قرعه...</b>", { parse_mode: "HTML" });
         setTimeout(() => finishCoinflip(ctx, game), 650);
         return;
     }
@@ -2588,7 +2618,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
             `👤 ${warmName(game.creatorName)} ➜ ⏳\n` +
             `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ⏳\n\n` +
             `🪙 شرط هر نفر: <b>${copyNumber(game.wager)} MBN</b>\n` +
-            `🏆 جایزه‌ی راند: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
+            `🏆 برنده این راند: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
             `👇 هر دو نفر اسپین خودشون رو بزنن`,
             { parse_mode: "HTML", ...casinoGroupButtons(game as CasinoGame) }
         );
@@ -2605,15 +2635,15 @@ bot.action(/^game:cancel:(.+)$/, async ctx => {
     const game = db.games[ctx.match[1]];
 
     if (!game) {
-        await safeAnswerCbQuery(ctx, "❌ این بازی پیدا نمی‌شه؛ احتمالاً به پایان رسیده یا لغو شده.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "❌ این بازی دیگه پیدا نمی‌شه؛ احتمالاً تموم شده یا لغو شده.", { show_alert: true });
         return;
     }
     if (ctx.from.id !== game.creatorId) {
-        await safeAnswerCbQuery(ctx, "🫶 فقط سازنده‌ی بازی می‌تونه این دعوت رو لغو کنه.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "🫶 فقط سازندهٔ بازی می‌تونه این دعوت رو لغو کنه.", { show_alert: true });
         return;
     }
     if (game.status !== "waiting") {
-        await safeAnswerCbQuery(ctx, "⛔ راند شروع شده؛ دیگه وسط بازی امکان لغو نیست.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ بازی شروع شده؛ دیگه وسط راند نمی‌شه لغوش کرد.", { show_alert: true });
         return;
     }
 
@@ -2633,7 +2663,7 @@ bot.action(/^rps:choose:(.+):(rock|paper|scissors)$/, async ctx => {
         return;
     }
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
 
@@ -2652,7 +2682,7 @@ bot.action(/^rps:choose:(.+):(rock|paper|scissors)$/, async ctx => {
         game.opponentChoice = choice;
     }
 
-    await safeAnswerCbQuery(ctx, "✅ ثبت شد! بزن بریم 🔥");
+    await safeAnswerCbQuery(ctx, "✅ ثبت شد؛ بزن بریم!");
 
     if (!game.creatorChoice || !game.opponentChoice) {
         saveDatabase(db);
@@ -2687,10 +2717,10 @@ bot.action(/^rps:choose:(.+):(rock|paper|scissors)$/, async ctx => {
     const loserChoice = settled.loser.id === game.creatorId ? game.creatorChoice : game.opponentChoice;
     await safeEdit(ctx,
         `🏁 <b>نبرد تموم شد!</b> 🔥\n\n` +
-        `👑 <b>برنده: ${warmName(settled.winner.name)}</b> (${rpsName(winnerChoice)})\n` +
-        `😵 <b>بازنده: ${warmName(settled.loser.name)}</b> (${rpsName(loserChoice)})\n\n` +
-        `💰 جایزه‌ی برنده: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
-        `🪙 موجودی برنده: <b>${copyNumber(settled.winner.coins)} MBN</b>\n\n` +
+        `👑 برنده: <b>${warmName(settled.winner.name)}</b> (${rpsName(winnerChoice)})\n` +
+        `😵 بازنده: <b>${warmName(settled.loser.name)}</b> (${rpsName(loserChoice)})\n\n` +
+        `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
+        `🪙 موجودی برنده: <b>${copyNumber(settled.winner.coins)}</b>\n\n` +
         `${xpResultLine(settled.winner, settled.winnerXp)}\n` +
         `${xpResultLine(settled.loser, settled.loserXp)}` ,
         { parse_mode: "HTML" }
@@ -2712,15 +2742,15 @@ bot.action(/^ttt:move:(.+):(\d)$/, async ctx => {
         return;
     }
     if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
-        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ این بازی مال تو نیست؛ از دکمه‌های بازی خودت استفاده کن 😄", { show_alert: true });
         return;
     }
     if (ctx.from.id !== game.turn) {
-        await safeAnswerCbQuery(ctx, "⏳ هنوز نوبت تو نیست؛ حریف داره بازی می‌کنه.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "نوبت تو نیست.", { show_alert: true });
         return;
     }
     if (game.board[index] !== " ") {
-        await safeAnswerCbQuery(ctx, "😄 این خونه قبلاً انتخاب شده؛ یه خونه‌ی دیگه انتخاب کن.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "این خونه پره.", { show_alert: true });
         return;
     }
 
@@ -2732,14 +2762,14 @@ bot.action(/^ttt:move:(.+):(\d)$/, async ctx => {
         const settled = settleWinner(game, winnerId);
         if (!settled) return;
 
-        await safeAnswerCbQuery(ctx, "🏆 بردی! چه راند خفنی! 🔥");
+        await safeAnswerCbQuery(ctx, "🏆 بردی!");
         await sendStickerSafe(ctx, "win");
         await safeEdit(ctx,
             `🏁 <b>نبرد دوز تموم شد!</b>\n\n` +
             `${tttBoard(game.board)}\n\n` +
-            `👑 <b>برنده: ${warmName(settled.winner.name)}</b>\n` +
+            `👑 برنده: <b>${warmName(settled.winner.name)}</b>\n` +
             `💰 موجودی برنده: <b>${copyNumber(settled.winner.coins)}</b>\n` +
-            `😵 <b>بازنده: ${warmName(settled.loser.name)}</b>\n` +
+            `😵 بازنده: <b>${warmName(settled.loser.name)}</b>\n` +
             `💰 موجودی بازنده: <b>${copyNumber(settled.loser.coins)}</b>\n\n` +
             `${xpResultLine(settled.winner, settled.winnerXp)}\n` +
             `${xpResultLine(settled.loser, settled.loserXp)}`,
@@ -2753,7 +2783,7 @@ bot.action(/^ttt:move:(.+):(\d)$/, async ctx => {
     if (game.board.every(cell => cell !== " ")) {
         const settled = settleDraw(game);
         if (!settled) return;
-        await safeAnswerCbQuery(ctx, "🤝 مساوی شد! این راند بدون برنده به پایان رسید.");
+        await safeAnswerCbQuery(ctx, "🤝 مساوی");
         await safeEdit(ctx,
             `🤝 <b>دوز مساوی شد</b>\n\n` +
             `${tttBoard(game.board)}\n\n` +
@@ -2769,7 +2799,7 @@ bot.action(/^ttt:move:(.+):(\d)$/, async ctx => {
 
     game.turn = game.turn === game.creatorId ? game.opponentId! : game.creatorId;
     saveDatabase(db);
-    await safeAnswerCbQuery(ctx, "✅ ثبت شد! بزن بریم 🔥");
+    await safeAnswerCbQuery(ctx, "✅ ثبت شد؛ بزن بریم!");
     await updateTtt(ctx, game);
     });
 });
@@ -2811,7 +2841,7 @@ async function handleDailyWheel(ctx: any) {
 
         const reward = weightedWheelReward();
         if (!canAddCoins(user, reward)) {
-            await replyWarm(ctx, "😅 موجودی به سقف مجاز رسیده؛ فعلاً امکان واریز این جایزه نیست.", "game");
+            await replyWarm(ctx, "😅 موجودی به سقف مجاز رسیده؛ این جایزه قابل واریز نیست.", "game");
             return;
         }
 
@@ -2847,24 +2877,24 @@ async function handleTransfer(ctx: any, parts: string[]) {
         const targetId = Number(replyFrom.id);
 
         if (!Number.isSafeInteger(targetId) || targetId <= 0 || replyFrom.is_bot) {
-            await ctx.reply("😅 گیرنده پیدا نشد یا معتبر نیست؛ پیام کاربر رو دوباره چک کن.", { parse_mode: "HTML" });
+            await ctx.reply("😅 این گیرنده معتبر نیست؛ پیام یا کاربر رو یه بار چک کن.", { parse_mode: "HTML" });
             return true;
         }
         if (targetId === sender.id) {
-            await ctx.reply("😄 انتقال به حساب خودت امکان‌پذیر نیست؛ یه رفیق دیگه انتخاب کن!");
+            await ctx.reply("😄 پول رو برای خودت نمی‌شه انتقال داد؛ یه رفیق انتخاب کن!");
             return true;
         }
         const target = getStoredUser(targetId);
         if (!target) {
-            await ctx.reply("😅 این کاربر هنوز حسابش رو فعال نکرده؛ اول <b>/start</b> رو بفرسته.");
+            await ctx.reply("😅 این رفیق هنوز حسابش رو فعال نکرده؛ اول یه بار <code>/start</code> رو بزنه.");
             return true;
         }
         if (sender.coins < amount) {
-            await replyWarm(ctx, `😅 <b>برای این انتقال 💸 موجودی کافی نیست؛ مبلغ انتخابی از موجودی تو بیشتره.</b>\n\n🪙 موجودی فعلی: <b>${copyNumber(sender.coins)} MBN</b>\n💸 مبلغ: <b>${copyNumber(amount)} MBN</b>`, "lose", { parse_mode: "HTML" });
+            await replyWarm(ctx, `😅 <b>برای این انتقال 💸 موجودی کافی نیست؛ برای این شرط سکه کم داری.</b>\n\n🪙 موجودی فعلی: <b>${copyNumber(sender.coins)} MBN</b>\n💸 مبلغ: <b>${copyNumber(amount)} MBN</b>`, "lose", { parse_mode: "HTML" });
             return true;
         }
         if (!canAddCoins(target, amount)) {
-            await ctx.reply("⚠️ موجودی گیرنده به سقف مجاز رسیده؛ انتقال انجام نشد.");
+            await ctx.reply("😅 موجودی گیرنده به سقف رسیده؛ انتقال انجام نشد.");
             return true;
         }
 
@@ -2948,7 +2978,7 @@ async function handleDeductAdmin(ctx: any, parts: string[]) {
             return true;
         }
         if (!canAddCoins(actor, amount)) {
-            await ctx.reply("⚠️ موجودی حساب دریافت‌کننده به سقف رسیده؛ عملیات انجام نشد.");
+            await ctx.reply("😅 موجودی حساب دریافت‌کننده جا نداره؛ عملیات انجام نشد.");
             return true;
         }
 
@@ -2982,13 +3012,13 @@ async function handleAdminManagement(ctx: any, text: string) {
     if (charge) {
         const amount = parseAmount(charge[1]);
         if (!amount) {
-            await ctx.reply(`😅 مبلغ شارژ باید یک عدد مثبت باشه؛ دوباره واردش کن.`);
+            await ctx.reply(`😅 مبلغ شارژ باید یک عدد مثبت باشه.`);
             return true;
         }
         const owner = getStoredUser(ctx.from.id) ?? getUser(ctx.from).user;
         const before = owner.coins;
         if (!addCoinsSafe(owner, amount)) {
-            await safeAnswerCbQuery(ctx, "😅 موجودی این حساب به سقف مجاز رسیده؛ فعلاً امکان افزایش بیشتر نیست.", { show_alert: true });
+            await safeAnswerCbQuery(ctx, "😅 سقف موجودی این حساب پر شده؛ فعلاً امکان افزایش بیشتر نیست.", { show_alert: true });
             return;
         }
         owner.updatedAt = Date.now();
@@ -3008,7 +3038,7 @@ async function handleAdminManagement(ctx: any, text: string) {
         const level = Math.max(1, Math.min(MAX_LEVEL, Number(levelSet[1])));
         const id = Number(levelSet[2]);
         const target = getStoredUser(id);
-        if (!target) { await ctx.reply("😅 این کاربر هنوز حسابی در بات نداره."); return true; }
+        if (!target) { await ctx.reply("😅 این کاربر هنوز حسابی توی بات نداره."); return true; }
         let xp = 0;
         for (let l = 1; l < level; l++) xp += xpNeededForLevel(l);
         target.stats.xp = xp;
@@ -3022,7 +3052,7 @@ async function handleAdminManagement(ctx: any, text: string) {
         const xp = Math.max(0, safeInt(xpSet[1]));
         const id = Number(xpSet[2]);
         const target = getStoredUser(id);
-        if (!target) { await ctx.reply("😅 این کاربر هنوز حسابی در بات نداره."); return true; }
+        if (!target) { await ctx.reply("😅 این کاربر هنوز حسابی توی بات نداره."); return true; }
         target.stats.xp = xp;
         target.updatedAt = Date.now();
         recordTransaction({ toUserId: target.id, amount: xp, type: "admin_xp", note: `admin:${ctx.from.id}:set-xp` });
@@ -3043,7 +3073,7 @@ async function handleAdminManagement(ctx: any, text: string) {
         const amount = safeInt((addXp || deductXp)![1]);
         const id = Number((addXp || deductXp)![2]);
         const target = getStoredUser(id);
-        if (!target || amount <= 0) { await ctx.reply("😅 شناسه کاربر یا مبلغ واردشده معتبر نیست؛ دوباره بررسی کن."); return true; }
+        if (!target || amount <= 0) { await ctx.reply("😅 شناسه کاربر یا مبلغ واردشده معتبر نیست."); return true; }
         const before = target.stats.xp || 0;
         target.stats.xp = addXp ? before + amount : Math.max(0, before - amount);
         target.updatedAt = Date.now();
@@ -3065,7 +3095,7 @@ async function handleAdminManagement(ctx: any, text: string) {
         const amount = safeInt(addCoins[1]);
         const id = Number(addCoins[2]);
         const target = getStoredUser(id);
-        if (!target || amount <= 0 || !canAddCoins(target, amount)) { await ctx.reply("😅 کاربر یا مقدار واردشده معتبر نیست، یا موجودی به سقف امن می‌رسه."); return true; }
+        if (!target || amount <= 0 || !canAddCoins(target, amount)) { await ctx.reply("😅 کاربر یا مقدار نامعتبره، یا موجودی به سقف امن می‌رسه."); return true; }
         const before = target.coins;
         target.coins += amount;
         target.updatedAt = Date.now();
@@ -3086,7 +3116,7 @@ async function handleAdminManagement(ctx: any, text: string) {
     if (remove) {
         const id = Number(remove[1]);
         if (isOwner(id)) {
-            await ctx.reply("👑 نه نه! مالک بات قابل حذف نیست 😄");
+            await ctx.reply("👑 نه نه، صاحب‌خونه رو نمی‌شه حذف کرد 😄");
             return true;
         }
         db.admins = db.admins.filter(x => x !== id);
@@ -3117,7 +3147,7 @@ function singleDiceExactKeyboard(userId: number, bet: number) {
     return Markup.inlineKeyboard([
         nums.slice(0, 3),
         nums.slice(3),
-        [styledCallback("↩️ برگشت به منو", `sd:back:${userId}:${bet}`, "primary")]
+        [styledCallback("↩️ برگشت", `sd:back:${userId}:${bet}`, "primary")]
     ]);
 }
 
@@ -3132,7 +3162,7 @@ async function handleSingleDicePrompt(ctx: any, betRaw: string) {
             return true;
         }
         if (user.coins < bet) {
-            await replyWarm(ctx, `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`, "lose", { parse_mode: "HTML" });
+            await replyWarm(ctx, `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`, "lose", { parse_mode: "HTML" });
             return true;
         }
 
@@ -3209,7 +3239,7 @@ async function resolveSingleDice(ctx: any, mode: "even" | "odd" | "exact", bet: 
     saveDatabase(db);
 
     await sendStickerSafe(ctx, won ? "diceWin" : "dice");
-    await safeAnswerCbQuery(ctx, won ? "🏆 بردی! چه راند خفنی! 🔥 ✅" : "😅 این راند به نفع شانس تو نبود!");
+    await safeAnswerCbQuery(ctx, won ? "🏆 بردی! ✅" : "😅 این راند به نفع شانس تو نبود!");
 
     const picked = mode === "exact"
         ? `عدد دقیق ${exact}`
@@ -3222,11 +3252,11 @@ async function resolveSingleDice(ctx: any, mode: "even" | "odd" | "exact", bet: 
           `عدد تاس: <b>${value}</b>\n` +
           `انتخاب: <b>${picked}</b>\n\n` +
           `🏆 جایزه: <b>${copyNumber(bet * multiplier)} MBN</b>\n` +
-          `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`
+          `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`
         : `🎲 <b>😅 این راند به نفع شانس تو نبود!</b>\n\n` +
           `عدد تاس: <b>${value}</b>\n` +
           `انتخاب: <b>${picked}</b>\n\n` +
-          `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`;
+          `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`;
 
     await ctx.reply(
         result + `\n\n${xpResultLine(user, xpAward)}\n\n✅ راند بعدی: دوباره «تاس ${bet}» را بفرست.`,
@@ -3276,7 +3306,7 @@ bot.action(/^sd:back:(\d+):(\d+)$/, async ctx => {
 bot.action(/^sd:cancel:(\d+)$/, async ctx => {
     if (!ctx.from || ctx.from.id !== Number(ctx.match[1])) return;
     await safeAnswerCbQuery(ctx, "🛑 لغو شد.");
-    await ctx.editMessageText("🎲 <b>راند لغو شد.</b>\n\nهر وقت خواستی دوباره شروع کن!", { parse_mode: "HTML" });
+    await ctx.editMessageText("🎲 🛑 راند 🛑 لغو شد.؛ هر وقت خواستی دوباره شروع کن.", { parse_mode: "HTML" });
 });
 
 function singleDartKeyboard(userId: number, bet: number) {
@@ -3297,7 +3327,7 @@ async function handleSingleDartPrompt(ctx: any, betRaw: string) {
             return true;
         }
         if (user.coins < bet) {
-            await replyWarm(ctx, `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`, "lose", { parse_mode: "HTML" });
+            await replyWarm(ctx, `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`, "lose", { parse_mode: "HTML" });
             return true;
         }
 
@@ -3378,8 +3408,8 @@ bot.action(/^sda:throw:(\d+):(\d+)$/, async ctx => {
         await safeAnswerCbQuery(ctx, win ? "🎯 وسط خوندی! آفرین!" : "😅 این بار مرکز رو نزدی!");
 
         const result = win
-            ? `🎯 <b>وسط خورد</b>\n\n🏆 جایزه: <b>${copyNumber(bet * 3)} MBN</b>\n🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`
-            : `🎯 <b>😅 این بار مرکز رو نزدی!</b>\n\n🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`;
+            ? `🎯 <b>وسط خورد</b>\n\n🏆 جایزه: <b>${copyNumber(bet * 3)} MBN</b>\n🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`
+            : `🎯 <b>😅 این بار مرکز رو نزدی!</b>\n\n🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`;
 
         await ctx.reply(
             result + `\n\n${xpResultLine(user, xpAward)}\n\n✅ راند بعدی: دوباره «دارت ${bet}» را بفرست.`,
@@ -3391,7 +3421,7 @@ bot.action(/^sda:throw:(\d+):(\d+)$/, async ctx => {
 bot.action(/^sda:cancel:(\d+)$/, async ctx => {
     if (!ctx.from || ctx.from.id !== Number(ctx.match[1])) return;
     await safeAnswerCbQuery(ctx, "🛑 لغو شد.");
-    await ctx.editMessageText("🎯 <b>راند لغو شد.</b>\n\nهر وقت خواستی دوباره شروع کن!", { parse_mode: "HTML" });
+    await ctx.editMessageText("🎯 🛑 راند 🛑 لغو شد.؛ هر وقت خواستی دوباره شروع کن.", { parse_mode: "HTML" });
 });
 
 async function handleNumberGuessPrompt(ctx: any, betRaw: string) {
@@ -3407,7 +3437,7 @@ async function handleNumberGuessPrompt(ctx: any, betRaw: string) {
         }
 
         if (user.coins < bet) {
-            await replyWarm(ctx, `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>\n🎯 شرط: <b>${copyNumber(bet)} MBN</b>`, "lose", { parse_mode: "HTML" });
+            await replyWarm(ctx, `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n🎯 شرط: <b>${copyNumber(bet)} MBN</b>`, "lose", { parse_mode: "HTML" });
             return true;
         }
 
@@ -3436,7 +3466,7 @@ async function handleNumberGuess(ctx: any, betRaw: string, guessRaw: string) {
         }
 
         if (user.coins < bet) {
-            if (isCallback) await safeAnswerCbQuery(ctx, "💸 موجودی کافی نیست؛ برای این مبلغ سکه کم داری.", { show_alert: true });
+            if (isCallback) await safeAnswerCbQuery(ctx, "برای این شرط 💸 موجودی کافی نیست؛ برای این شرط سکه کم داری.", { show_alert: true });
             else await replyWarm(ctx, `🪙 موجودی کافی نیست: <b>${copyNumber(user.coins)} MBN</b>`, "lose", { parse_mode: "HTML" });
             return;
         }
@@ -3460,7 +3490,7 @@ async function handleNumberGuess(ctx: any, betRaw: string, guessRaw: string) {
                 user.coins += bet;
                 user.stats.games--;
                 db.totals.games--;
-                resultText = `😅 این راند لغو شد؛ هر وقت خواستی دوباره شروع کن.\n🪙 شرطت برگشت خورد.`;
+                resultText = `😅 این 🛑 راند 🛑 لغو شد.؛ هر وقت خواستی دوباره شروع کن.\n🪙 شرطت برگشت خورد.`;
                 resultSticker = "game";
             } else {
                 user.coins += prize;
@@ -3471,7 +3501,7 @@ async function handleNumberGuess(ctx: any, betRaw: string, guessRaw: string) {
                 xpAward = applyGameXp(user, bet, "number_guess", true);
                 recordTransaction({ toUserId: user.id, amount: prize, type: "number_guess", note: `guess:${secret}` });
                 await notifyCompletedMissions(user);
-                resultText = `🎯 <b>آفرین! دقیق زدی! 🎯🔥</b>\n🤫 عدد: <b>${secret}</b>\n🏆 جایزه: <b>${copyNumber(prize)} MBN</b>\n🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`;
+                resultText = `🎯 <b>آفرین! دقیق زدی! 🎯🔥</b>\n🤫 عدد: <b>${secret}</b>\n🏆 جایزه: <b>${copyNumber(prize)} MBN</b>\n🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`;
                 resultSticker = "guessWin";
             }
         } else {
@@ -3480,7 +3510,7 @@ async function handleNumberGuess(ctx: any, betRaw: string, guessRaw: string) {
             xpAward = applyGameXp(user, bet, "number_guess", false);
             recordTransaction({ fromUserId: user.id, amount: bet, type: "number_guess", note: `miss:${secret}` });
             await notifyCompletedMissions(user);
-            resultText = `😅 <b>این بار نه! 😄</b>\n🤫 عدد: <b>${secret}</b>  •  ❌ حدس: <b>${guess}</b>\n🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`;
+            resultText = `😅 <b>این بار نه! 😄</b>\n🤫 عدد: <b>${secret}</b>  •  ❌ حدس: <b>${guess}</b>\n🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`;
             resultSticker = "guessLose";
         }
 
@@ -3522,14 +3552,14 @@ bot.action(/^ng:cancel:(\d+)$/, async ctx => {
     const ownerId = Number(ctx.match[1]);
 
     if (ctx.from.id !== ownerId) {
-        await safeAnswerCbQuery(ctx, "⛔ این دکمه برای بازیکن دیگه‌ست 😉", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "⛔ ⛔ این دکمه برای بازیکن دیگه‌ست 😉", { show_alert: true });
         return;
     }
 
     await safeAnswerCbQuery(ctx, "باشه رفیق 😄 هر وقت خواستی دوباره می‌ریم سراغش!");
     try {
         await ctx.editMessageText(
-            "✅ <b>راند لغو شد.</b>\nهر وقت خواستی دوباره شروع کن!",
+            "✅ <b>🛑 راند 🛑 لغو شد.؛ هر وقت خواستی دوباره شروع کن.</b>\nهر وقت خواستی دوباره شروع کن.",
             { parse_mode: "HTML" }
         );
     } catch {}
@@ -3588,7 +3618,7 @@ async function playCasino(ctx: any, bet: number) {
     return withMutationLock(async () => {
     const safeBet = parseGameBet(String(bet));
     if (!safeBet) {
-        await safeAnswerCbQuery(ctx, "مبلغ شرط نامعتبره؛ یک عدد معتبر وارد کن.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "مبلغ شرط نامعتبر است.", { show_alert: true });
         return;
     }
     const user = getStoredUser(ctx.from.id) ?? getUser(ctx.from).user;
@@ -3653,7 +3683,7 @@ async function playCasino(ctx: any, bet: number) {
         ? `🎰 <b>${outcome.label}</b>\n\n${casinoCombo(value)}\n\n🏆 جایزه: <b>${copyNumber(safeBet * outcome.multiplier)} MBN</b>\n🪙 موجودی: <b>${copyNumber(user.coins)}</b>\n\n${xpResultLine(user, xpAward)}`
         : `🎰 <b>این یکی نه</b>\n\n${casinoCombo(value)}\n\n🪙 -${copyNumber(safeBet)} MBN\n🪙 موجودی: <b>${copyNumber(user.coins)}</b>\n\n${xpResultLine(user, xpAward)}`;
 
-    await safeAnswerCbQuery(ctx, outcome.multiplier > 0 ? "🏆 بردی! چه راند خفنی! 🔥 ✅" : "😅 این راند به نفع شانس تو نبود!");
+    await safeAnswerCbQuery(ctx, outcome.multiplier > 0 ? "🏆 بردی! ✅" : "😅 این راند به نفع شانس تو نبود!");
     await ctx.reply(result + `\n\n✅ راند بعدی: «کازینو ${safeBet}» را بفرست.`, { parse_mode: "HTML" });
     });
 }
@@ -3670,7 +3700,7 @@ async function handleCasinoPrompt(ctx: any, betRaw: string) {
     }
 
     if (user.coins < bet) {
-        await replyWarm(ctx, `🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>`, "casinoLose", { parse_mode: "HTML" });
+        await replyWarm(ctx, `🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>`, "casinoLose", { parse_mode: "HTML" });
         return true;
     }
 
@@ -3695,7 +3725,7 @@ bot.action(/^casino:bet:(\d+):(\d+)$/, async ctx => {
     const user = getStoredUser(ctx.from.id) ?? getUser(ctx.from).user;
     const bet = parseGameBet(ctx.match[2]);
     if (!bet || user.coins < bet) {
-        await safeAnswerCbQuery(ctx, "💸 مبلغ شرط نامعتبره یا موجودی کافی نیست؛ مقدار شرط رو بررسی کن.", { show_alert: true });
+        await safeAnswerCbQuery(ctx, "مبلغ شرط معتبر نیست یا 💸 موجودی کافی نیست؛ برای این شرط سکه کم داری.", { show_alert: true });
         return;
     }
     await safeAnswerCbQuery(ctx, "✅ شرط انتخاب شد؛ آماده‌ای؟");
@@ -3715,7 +3745,7 @@ bot.action(/^casino:custom:(\d+)$/, async ctx => {
         `🎰 <b>شرط دلخواه کازینو</b>\n\n` +
         `مثال: <code>کازینو 100</code>\n` +
         `🪙 حداقل: <b>${copyNumber(MIN_GAME_BET)} MBN</b>`,
-        { parse_mode: "HTML", ...Markup.inlineKeyboard([[styledCallback("↩️ برگشت به منو", "pv:casino", "primary")]]) }
+        { parse_mode: "HTML", ...Markup.inlineKeyboard([[styledCallback("↩️ برگشت", "pv:casino", "primary")]]) }
     );
 });
 
@@ -3746,7 +3776,7 @@ bot.command("casino", async ctx => {
     }
     const { user } = getUser(ctx.from);
     await ctx.reply(
-        `🎰 <b>کازینو حرفه‌ای</b>\n\n🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>\n👇 مبلغ شرطت رو انتخاب کن:`,
+        `🎰 <b>کازینو حرفه‌ای</b>\n\n🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n👇 مبلغ شرطت رو انتخاب کن:`,
         { parse_mode: "HTML", ...casinoBetKeyboard(user.id, user.coins) }
     );
 });
@@ -3859,7 +3889,7 @@ bot.on(message("text"), async ctx => {
             } else {
                 const { user } = getUser(ctx.from);
                 await ctx.reply(
-                    `🎰 <b>کازینو حرفه‌ای</b>\n\n🪙 موجودی تو: <b>${copyNumber(user.coins)} MBN</b>\n👇 مبلغ شرطت رو انتخاب کن:`,
+                    `🎰 <b>کازینو حرفه‌ای</b>\n\n🪙 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n👇 مبلغ شرطت رو انتخاب کن:`,
                     { parse_mode: "HTML", ...casinoBetKeyboard(user.id, user.coins) }
                 );
             }

@@ -19,13 +19,13 @@ const EXTRA_ADMIN_IDS = new Set(
 
 const bot = new Telegraf(TOKEN);
 
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 const STARTING_COINS = 100;
 const MIN_GAME_BET = 20;
 const COINS_PER_1000 = 20_000;
 const GAME_TTL_MS = 2 * 60 * 1000;
 const PLAYER_ACTION_TIMEOUT_MS = 2 * 60 * 1000;
-const COUNTDOWN_UPDATE_INTERVAL = 15 * 1000;
+const COUNTDOWN_UPDATE_INTERVAL = 3 * 1000;   // ⏱️ هر ۳ ثانیه
 const MAX_TRANSACTION_LOG = 500;
 const MAX_BALANCE = Number.MAX_SAFE_INTEGER;
 
@@ -164,6 +164,7 @@ function withCountdown(game: BaseGame, text: string): string {
 
 async function renderGameMessage(ctx: Context, game: BaseGame, baseText: string, extra?: any) {
     game.lastBaseText = baseText;
+    if (extra) game.lastExtra = extra;
     saveDatabase(db);
     await safeEdit(ctx, withCountdown(game, baseText), extra);
 }
@@ -172,12 +173,13 @@ async function refreshCountdown(gameId: string) {
     const game = db.games[gameId];
     if (!game || game.status !== "playing" || !game.lastBaseText) return;
     try {
+        const extra = game.lastExtra ?? { parse_mode: "HTML" };
         await bot.telegram.editMessageText(
             game.chatId,
             game.messageId,
             undefined,
             withCountdown(game, game.lastBaseText),
-            { parse_mode: "HTML" }
+            extra
         );
     } catch {}
 }
@@ -239,7 +241,7 @@ async function handleGameTimeout(gameId: string, phase: "waiting" | "playing") {
         saveDatabase(db);
         await safeEditMessageById(
             game.chatId, game.messageId,
-            `⏰ <b>زمان تمام شد!</b>\n\n😴 کسی به بازی نپیوست...\n🪙 مبلغ شرط کامل به ${warmName(creator?.name || "سازنده")} برگشت.`,
+            `⏰ <b>زمان تموم شد!</b>\n\n😴 کسی به بازی نپیوست...\n🪙 مبلغ شرط کامل به ${warmName(creator?.name || "سازنده")} برگشت.`,
             { parse_mode: "HTML" }
         );
         clearGameTimer(gameId);
@@ -255,7 +257,7 @@ async function handleGameTimeout(gameId: string, phase: "waiting" | "playing") {
         saveDatabase(db);
         await safeEditMessageById(
             game.chatId, game.messageId,
-            `⏰ <b>زمان تمام شد!</b>\n\n😴 هیچ‌کدوم از بازیکنان حرکت نکردن...\n🪙 شرط هر دو نفر کامل برگشت.`,
+            `⏰ <b>زمان تموم شد!</b>\n\n😴 هیچ‌کدوم از بازیکنان حرکت نکردن...\n🪙 شرط هر دو نفر کامل برگشت.`,
             { parse_mode: "HTML" }
         );
         clearGameTimer(gameId);
@@ -278,7 +280,7 @@ async function handleGameTimeout(gameId: string, phase: "waiting" | "playing") {
 
     await safeEditMessageById(
         game.chatId, game.messageId,
-        `⏰ <b>زمان تمام شد!</b>\n\n` +
+        `⏰ <b>زمان تموم شد!</b>\n\n` +
         `😴 <b>${warmName(loser.name)}</b> توی ۲ دقیقه حرکت نکرد و باخت!\n` +
         `👑 <b>${warmName(winner.name)}</b> برنده شد 🎉\n\n` +
         `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
@@ -348,6 +350,7 @@ type BaseGame = {
     settled: boolean;
     deadlineAt?: number;
     lastBaseText?: string;
+    lastExtra?: any;
 };
 
 type CoinflipGame = BaseGame & { type: "coinflip" };
@@ -477,182 +480,6 @@ function sanitizeStats(value: any): Stats {
     };
 }
 
-function migrateDatabase(raw: any): Database {
-    const db = emptyDatabase();
-    const rawUsers = raw?.users ?? {};
-
-    for (const value of Object.values(rawUsers) as any[]) {
-        if (!value || !Number.isSafeInteger(Number(value.id))) continue;
-
-        const id = Number(value.id);
-        const safe: User = {
-            id,
-            name: String(value.name || value.username || "کاربر"),
-            username: value.username ? String(value.username) : undefined,
-            coins: Math.max(0, safeInt(value.coins)),
-            xp: Math.max(0, safeInt(value.xp)),
-            activeGameId: typeof value.activeGameId === "string" ? value.activeGameId : undefined,
-            stats: sanitizeStats(value.stats),
-            createdAt: numberOr(value.createdAt, Date.now()),
-            updatedAt: numberOr(value.updatedAt, Date.now()),
-            lastWheelDay: typeof value.lastWheelDay === "string" ? value.lastWheelDay : undefined,
-            claimedMissions: Array.isArray(value.claimedMissions)
-                ? value.claimedMissions.map((v: any) => safeInt(v)).filter((v: number) => v > 0)
-                : [],
-            referredBy: Number.isSafeInteger(Number(value.referredBy)) ? Number(value.referredBy) : undefined
-        };
-
-        const existing = db.users[String(id)];
-        if (!existing) {
-            db.users[String(id)] = safe;
-            continue;
-        }
-
-        existing.coins = Math.max(existing.coins, safe.coins);
-        existing.name = safe.name || existing.name;
-        existing.username = safe.username || existing.username;
-        existing.createdAt = Math.min(existing.createdAt, safe.createdAt);
-        existing.updatedAt = Math.max(existing.updatedAt, safe.updatedAt);
-        existing.xp = Math.max(0, safeInt(existing.xp ?? safe.xp));
-        existing.stats.wins = Math.max(existing.stats.wins, safe.stats.wins);
-        existing.stats.losses = Math.max(existing.stats.losses, safe.stats.losses);
-        existing.stats.draws = Math.max(existing.stats.draws, safe.stats.draws);
-        existing.stats.games = Math.max(existing.stats.games, safe.stats.games);
-        existing.stats.winStreak = Math.max(existing.stats.winStreak, safe.stats.winStreak);
-        existing.stats.bestStreak = Math.max(existing.stats.bestStreak, safe.stats.bestStreak);
-        existing.stats.xp = Math.max(existing.stats.xp, safe.stats.xp);
-        existing.stats.coinflipWins = Math.max(existing.stats.coinflipWins, safe.stats.coinflipWins);
-        existing.stats.rpsWins = Math.max(existing.stats.rpsWins, safe.stats.rpsWins);
-        existing.stats.tttWins = Math.max(existing.stats.tttWins, safe.stats.tttWins);
-        existing.stats.diceWins = Math.max(existing.stats.diceWins, safe.stats.diceWins);
-        existing.stats.dartWins = Math.max(existing.stats.dartWins, safe.stats.dartWins);
-        existing.stats.guessWins = Math.max(existing.stats.guessWins, safe.stats.guessWins);
-        existing.stats.casinoWins = Math.max(existing.stats.casinoWins, safe.stats.casinoWins);
-        existing.lastWheelDay = existing.lastWheelDay || safe.lastWheelDay;
-        existing.claimedMissions = Array.from(new Set([...(existing.claimedMissions || []), ...(safe.claimedMissions || [])]));
-    }
-
-    for (const id of Array.isArray(raw?.admins) ? raw.admins : []) {
-        const n = Number(id);
-        if (Number.isSafeInteger(n) && n > 0 && !db.admins.includes(n)) db.admins.push(n);
-    }
-    for (const id of EXTRA_ADMIN_IDS) {
-        if (!db.admins.includes(id)) db.admins.push(id);
-    }
-    if (OWNER_ID > 0 && !db.admins.includes(OWNER_ID)) db.admins.push(OWNER_ID);
-
-    db.totals.games = Math.max(0, safeInt(raw?.totals?.games));
-    db.totals.coinsPaid = Math.max(0, safeInt(raw?.totals?.coinsPaid));
-
-    if (raw?.version === DB_VERSION) {
-        const txs = Array.isArray(raw?.transactions) ? raw.transactions : [];
-        db.transactions = txs.slice(-MAX_TRANSACTION_LOG).filter((tx: any) =>
-            tx && typeof tx.id === "string" && Number.isSafeInteger(Number(tx.amount)) && Number(tx.amount) > 0
-        ) as Transaction[];
-    }
-
-    for (const [rid, rawReferral] of Object.entries(raw?.referrals ?? {}) as [string, any][]) {
-        if (!rawReferral) continue;
-        const inviterId = safeInt(rawReferral.inviterId);
-        const inviteeId = safeInt(rawReferral.inviteeId);
-        if (inviterId <= 0 || inviteeId <= 0 || inviterId === inviteeId) continue;
-        db.referrals[rid] = {
-            inviterId,
-            inviteeId,
-            inviteeName: String(rawReferral.inviteeName || "کاربر"),
-            createdAt: numberOr(rawReferral.createdAt, Date.now()),
-            groupJoined: Boolean(rawReferral.groupJoined),
-            channelJoined: Boolean(rawReferral.channelJoined),
-            rewarded: Boolean(rawReferral.rewarded),
-            rewardedAt: Number.isSafeInteger(Number(rawReferral.rewardedAt)) ? Number(rawReferral.rewardedAt) : undefined,
-        };
-    }
-
-    const rawGames = raw?.games ?? {};
-    for (const [id, rawGame] of Object.entries(rawGames) as [string, any][]) {
-        if (!rawGame) continue;
-
-        if ((raw?.version === 7 || raw?.version === 8 || raw?.version === 9 || raw?.version === 10) && typeof rawGame.type === "string" && ACTIVE_GAME_STATUSES.has(rawGame.status)) {
-            const creatorId = Number(rawGame.creatorId);
-            const opponentId = rawGame.opponentId == null ? undefined : Number(rawGame.opponentId);
-            const wager = Math.max(0, safeInt(rawGame.wager));
-            if (!Number.isSafeInteger(creatorId) || wager <= 0 || !db.users[String(creatorId)]) continue;
-
-            const base = {
-                id: String(rawGame.id || id),
-                chatId: safeInt(rawGame.chatId),
-                messageId: Number.isSafeInteger(Number(rawGame.messageId)) ? Number(rawGame.messageId) : undefined,
-                creatorId,
-                creatorName: String(rawGame.creatorName || db.users[String(creatorId)]?.name || "کاربر"),
-                opponentId: Number.isSafeInteger(opponentId as number) ? opponentId : undefined,
-                opponentName: rawGame.opponentName ? String(rawGame.opponentName) : undefined,
-                wager,
-                status: rawGame.status as GameStatus,
-                creatorStakeHeld: Boolean(rawGame.creatorStakeHeld),
-                opponentStakeHeld: Boolean(rawGame.opponentStakeHeld),
-                createdAt: numberOr(rawGame.createdAt, Date.now()),
-                settled: Boolean(rawGame.settled)
-            };
-
-            if (rawGame.type === "coinflip") {
-                db.games[base.id] = { ...base, type: "coinflip" };
-            } else if (rawGame.type === "dice") {
-                db.games[base.id] = {
-                    ...base,
-                    type: "dice",
-                    creatorRoll: Number.isInteger(Number(rawGame.creatorRoll)) ? Number(rawGame.creatorRoll) : undefined,
-                    opponentRoll: Number.isInteger(Number(rawGame.opponentRoll)) ? Number(rawGame.opponentRoll) : undefined,
-                    creatorMode: rawGame.creatorMode === "even" || rawGame.creatorMode === "odd" || rawGame.creatorMode === "exact" ? rawGame.creatorMode : undefined,
-                    opponentMode: rawGame.opponentMode === "even" || rawGame.opponentMode === "odd" || rawGame.opponentMode === "exact" ? rawGame.opponentMode : undefined,
-                    creatorExact: Number.isInteger(Number(rawGame.creatorExact)) && Number(rawGame.creatorExact) >= 1 && Number(rawGame.creatorExact) <= 6 ? Number(rawGame.creatorExact) : undefined,
-                    opponentExact: Number.isInteger(Number(rawGame.opponentExact)) && Number(rawGame.opponentExact) >= 1 && Number(rawGame.opponentExact) <= 6 ? Number(rawGame.opponentExact) : undefined
-                };
-            } else if (rawGame.type === "dart") {
-                db.games[base.id] = {
-                    ...base,
-                    type: "dart",
-                    creatorRoll: Number.isInteger(Number(rawGame.creatorRoll)) ? Number(rawGame.creatorRoll) : undefined,
-                    opponentRoll: Number.isInteger(Number(rawGame.opponentRoll)) ? Number(rawGame.opponentRoll) : undefined
-                };
-            } else if (rawGame.type === "casino") {
-                db.games[base.id] = {
-                    ...base,
-                    type: "casino",
-                    creatorRoll: Number.isInteger(Number(rawGame.creatorRoll)) ? Number(rawGame.creatorRoll) : undefined,
-                    opponentRoll: Number.isInteger(Number(rawGame.opponentRoll)) ? Number(rawGame.opponentRoll) : undefined
-                };
-            } else if (rawGame.type === "rps") {
-                db.games[base.id] = {
-                    ...base,
-                    type: "rps",
-                    creatorChoice: rawGame.creatorChoice,
-                    opponentChoice: rawGame.opponentChoice
-                };
-            } else if (rawGame.type === "tictactoe" && Array.isArray(rawGame.board)) {
-                const board = rawGame.board.map((v: any) => v === "❌" || v === "⭕" ? v : " ").slice(0, 9);
-                while (board.length < 9) board.push(" ");
-                db.games[base.id] = {
-                    ...base,
-                    type: "tictactoe",
-                    board,
-                    turn: Number(rawGame.turn) || creatorId
-                };
-            }
-            continue;
-        }
-
-        if (rawGame.stakesTaken) {
-            const wager = Math.max(0, safeInt(rawGame.wager));
-            const a = db.users[String(rawGame.creatorId)];
-            const b = db.users[String(rawGame.opponentId)];
-            if (a && wager > 0) a.coins += wager;
-            if (b && wager > 0) b.coins += wager;
-        }
-    }
-
-    return db;
-}
-
 function loadDatabase(): Database {
     return loadSQLiteDatabase<Database>();
 }
@@ -662,6 +489,9 @@ function saveDatabase(database: Database) {
 }
 
 const db = loadDatabase();
+
+// اطمینان از مهاجرت صحیح referrals
+if (!db.referrals) db.referrals = {};
 
 for (const id of EXTRA_ADMIN_IDS) {
     if (!db.admins.includes(id)) db.admins.push(id);
@@ -1072,8 +902,11 @@ function settleDraw(game: Game) {
     const opponentXp = applyGameXp(opponent, game.wager, game.type, false, true);
     void notifyCompletedMissions(creator);
     void notifyCompletedMissions(opponent);
-    recordTransaction({ amount: game.wager, type: "game_refund", note: `game:${game.id}:draw:${game.creatorId}` });
-    recordTransaction({ amount: game.wager, type: "game_refund", note: `game:${game.id}:draw:${game.opponentId}` });
+
+    // ✅ اصلاح: اضافه کردن toUserId
+    recordTransaction({ toUserId: creator.id, amount: game.wager, type: "game_refund", note: `game:${game.id}:draw` });
+    recordTransaction({ toUserId: opponent.id, amount: game.wager, type: "game_refund", note: `game:${game.id}:draw` });
+
     clearActiveGame(game.creatorId, game.id);
     clearActiveGame(game.opponentId, game.id);
     saveDatabase(db);
@@ -1202,6 +1035,34 @@ function reconcileActiveGames() {
     saveDatabase(db);
 }
 
+// ✅ اصلاح: بازسازی تایمرهای بازی‌های فعال پس از ری‌استارت
+function rescheduleGameTimers() {
+    const now = Date.now();
+    for (const [id, game] of Object.entries(db.games)) {
+        if (!ACTIVE_GAME_STATUSES.has(game.status)) continue;
+
+        if (game.deadlineAt && game.deadlineAt > now) {
+            const remaining = game.deadlineAt - now;
+            clearGameTimer(id);
+
+            const phase: "waiting" | "playing" = game.status === "waiting" ? "waiting" : "playing";
+            const timeout = setTimeout(() => { void handleGameTimeout(id, phase); }, remaining);
+
+            let interval: NodeJS.Timeout | undefined;
+            if (phase === "playing") {
+                interval = setInterval(() => { void refreshCountdown(id); }, COUNTDOWN_UPDATE_INTERVAL);
+                (interval as any).unref?.();
+            }
+            gameTimers.set(id, { timeout, interval });
+            console.log(`⏱️  بازسازی تایمر بازی ${id} (${phase}) — باقی‌مانده ${Math.round(remaining / 1000)}s`);
+        } else {
+            // تایمر گذشته، همین لحظه پردازش کن
+            const phase: "waiting" | "playing" = game.status === "waiting" ? "waiting" : "playing";
+            void handleGameTimeout(id, phase);
+        }
+    }
+}
+
 function expireGames() {
     const now = Date.now();
     let changed = false;
@@ -1219,6 +1080,7 @@ function expireGames() {
 
 reconcileActiveGames();
 expireGames();
+rescheduleGameTimers();   // ✅ اضافه شد
 const cleanupTimer = setInterval(expireGames, 30_000);
 (cleanupTimer as any).unref?.();
 
@@ -1544,7 +1406,7 @@ async function createGame(ctx: Context, type: GameType, wager: number) {
         });
         game.messageId = sent.message_id;
         saveDatabase(db);
-        scheduleGameTimeout(game, "waiting");   // 👈 جدید
+        scheduleGameTimeout(game, "waiting");
     } catch (error) {
         console.error("create game message error:", error);
         refundGame(game);
@@ -1571,6 +1433,7 @@ async function updateRps(ctx: Context, game: RPSGame) {
         `👤 ${warmName(game.creatorName)} ➜ ${game.creatorChoice ? "✅ انتخاب ثبت شد" : "⏳ هنوز انتخاب نکرده"}\n` +
         `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${game.opponentChoice ? "✅ انتخاب ثبت شد" : "⏳ هنوز انتخاب نکرده"}\n\n` +
         `🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n` +
+        `${vibe}\n` +
         `👇 انتخابت رو ثبت کن؛ این راند می‌تونه مال تو باشه! 😎`,
         { parse_mode: "HTML", ...playingRpsKeyboard(game.id) }
     );
@@ -1609,8 +1472,7 @@ async function updateTtt(ctx: Context, game: TicTacToeGame) {
         `❌ ${warmName(game.creatorName)}\n⭕ ${warmName(game.opponentName)}\n\n` +
         `${tttBoard(game.board)}\n\n` +
         `🪙 <b>${copyNumber(game.wager)} MBN</b>  •  🏆 <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
-        `🎯 نوبت <b>${warmName(turnName)}</b> ـه!
-👇 حرکتت رو انتخاب کن`,
+        `🎯 نوبت <b>${warmName(turnName)}</b> ـه!\n👇 حرکتت رو انتخاب کن`,
         { parse_mode: "HTML", ...tttKeyboard(game) }
     );
 }
@@ -1734,8 +1596,7 @@ bot.start(async ctx => {
           `💰 موجودی فعلی: <b>${copyNumber(user.coins)} MBN</b>\n\n` +
           `😎 بیا بازی کنیم؛ XP بگیر، سکه جمع کن و رکورد بزن! 🔥`
         : `👋 <b>خوش برگشتی، ${warmName(user.name)}!</b> 🫶\n\n` +
-          `💰 موجودی فعلیت <b>${copyNumber(user.coins)} MBN</b> ـه.
-🔥 آماده‌ای برای یه راند دیگه؟\n` +
+          `💰 موجودی فعلیت <b>${copyNumber(user.coins)} MBN</b> ـه.\n🔥 آماده‌ای برای یه راند دیگه؟\n` +
           `🎯 یه راند دیگه بزنیم؟ 😎`;
 
     await sendStickerSafe(ctx, created ? "welcome" : "game");
@@ -1752,6 +1613,7 @@ bot.start(async ctx => {
         ...mainKeyboard
     });
 });
+
 function referralKey(inviteeId: number) { return String(inviteeId); }
 
 function getReferralList(inviterId: number) {
@@ -1773,8 +1635,7 @@ function referralText(userId: number, botUsername: string) {
         `✅ دعوت‌های موفق: <b>${successful}</b> نفر`,
         `⏳ دعوت‌های در انتظار: <b>${pending}</b> نفر`,
         "",
-        `🔗 <b>لینک اختصاصی تو:</b>
-<code>${escapeHTML(referralLink(botUsername, userId))}</code>`,
+        `🔗 <b>لینک اختصاصی تو:</b>\n<code>${escapeHTML(referralLink(botUsername, userId))}</code>`,
         "",
         "📌 پاداش وقتی ثبت می‌شه که فرد دعوت‌شده واقعاً وارد گپ و کانال تنظیم‌شده شود.",
         "",
@@ -1843,6 +1704,7 @@ const HELP_TEXT = `
 🎲 <code>تاس 100</code>
 🎯 <code>دارت 100</code>
 🎰 <code>کازینو 100</code>  |  <code>اسلات 100</code>
+🎳 <code>بولینگ 100</code>
 
 🎯 <b>حدس عدد</b>
 <code>حدس عدد 100</code>
@@ -1964,9 +1826,7 @@ bot.action(/^pv:(home|balance|profile|top|missions|wheel|casino|referral)$/, asy
     const { user } = getUser(ctx.from);
     const key = ctx.match[1];
     if (key === "home") {
-        await ctx.editMessageText(`🏠 <b>منوی اصلی مبینا</b>
-
-💰 موجودی: <b>${copyNumber(user.coins)} MBN</b>`, { parse_mode: "HTML", ...privateKeyboardFor(user.id) });
+        await ctx.editMessageText(`🏠 <b>منوی اصلی مبینا</b>\n\n💰 موجودی: <b>${copyNumber(user.coins)} MBN</b>`, { parse_mode: "HTML", ...privateKeyboardFor(user.id) });
         return;
     }
     if (key === "balance") await ctx.editMessageText(balanceText(user), { parse_mode: "HTML", ...privateKeyboardFor(user.id) });
@@ -2011,12 +1871,12 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
         }
         const refunded = refundGame(game);
         if (refunded) {
-            await safeEditMessageById(game.chatId, game.messageId, "✖️ <b>بازی توسط مدیریت 🛑 لغو شد..</b>\n\n🪙 تمام شرط‌های درگیر به حساب بازیکن‌ها برگشت.", { parse_mode: "HTML" });
+            await safeEditMessageById(game.chatId, game.messageId, "✖️ <b>بازی توسط مدیریت 🛑 لغو شد.</b>\n\n🪙 تمام شرط‌های درگیر به حساب بازیکن‌ها برگشت.", { parse_mode: "HTML" });
             delete db.games[game.id];
             saveDatabase(db);
         }
         await safeAnswerCbQuery(ctx, refunded ? "بازی 🛑 لغو شد. ✅" : "این بازی قبلاً تسویه شده.", { show_alert: !refunded });
-        await ctx.editMessageText("✖️ <b>بازی 🛑 لغو شد..</b>\n\n🪙 مبلغ شرط‌ها کامل برگشت خورد.", { parse_mode: "HTML", ...adminKeyboard(ctx.from.id) });
+        await ctx.editMessageText("✖️ <b>بازی 🛑 لغو شد.</b>\n\n🪙 مبلغ شرط‌ها کامل برگشت خورد.", { parse_mode: "HTML", ...adminKeyboard(ctx.from.id) });
         return;
     }
 
@@ -2175,7 +2035,7 @@ bot.action(/^admin:(home|stats|games|users|find|ops|casino|economy|transactions|
         const before = owner.coins;
         if (!addCoinsSafe(owner, amount)) {
             await replyWarm(ctx, "😵‍💫 موجودی به سقف امن رسیده؛ فعلاً این عملیات قابل انجام نیست.", "game");
-            return true;
+            return;
         }
         owner.updatedAt = Date.now();
         recordTransaction({ toUserId: owner.id, amount, type: "owner_charge", note: "quick-charge" });
@@ -2410,7 +2270,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
     const isCreator = ctx.from.id === game.creatorId;
     const currentMode = isCreator ? game.creatorMode : game.opponentMode;
     const currentExact = isCreator ? game.creatorExact : game.opponentExact;
-        if (!currentMode) {
+    if (!currentMode) {
         await safeAnswerCbQuery(ctx, "اول پیش‌بینی خودت رو انتخاب کن؛ بعد تاس رو بنداز.", { show_alert: true });
         await renderGameMessage(ctx, game,
             `🎲 <b>نبرد تاس</b>\n\n` +
@@ -2715,7 +2575,7 @@ bot.action(/^gd:mode:(.+):(even|odd|exact)$/, async ctx => {
     const isCreator = ctx.from.id === game.creatorId;
     const mode = ctx.match[2] as DicePredictionMode;
 
-        if (mode === "exact") {
+    if (mode === "exact") {
         await safeAnswerCbQuery(ctx, "عدد دقیق رو انتخاب کن");
         await renderGameMessage(ctx, game,
             `🎲 <b>پیش‌بینی دقیق</b>\n\n🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n👇 عدد ۱ تا ۶ را انتخاب کن`,
@@ -2863,10 +2723,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     await safeAnswerCbQuery(ctx, "🔥 بزن بریم!! بازی شروع شد");
 
     if (game.type === "coinflip") {
-        await safeEdit(ctx, `🎲 <b>در حال قرعه‌کشی...</b>
-
-🍀 شانس داره انتخاب می‌کنه...
-⏳ فقط یه لحظه رفیق!`, { parse_mode: "HTML" });
+        await safeEdit(ctx, `🎲 <b>در حال قرعه‌کشی...</b>\n\n🍀 شانس داره انتخاب می‌کنه...\n⏳ فقط یه لحظه رفیق!`, { parse_mode: "HTML" });
         setTimeout(() => finishCoinflip(ctx, game), 650);
         return;
     }
@@ -2876,7 +2733,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
         return;
     }
 
-        if (game.type === "dice") {
+    if (game.type === "dice") {
         await renderGameMessage(ctx, game,
             `🎲 <b>نبرد تاس</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
@@ -2915,7 +2772,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
         return;
     }
 
-        if (game.type === "bowling") {
+    if (game.type === "bowling") {
         await renderGameMessage(ctx, game,
             `🎳 <b>نبرد بولینگ</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ⏳\n` +
@@ -3201,7 +3058,7 @@ async function handleTransfer(ctx: any, parts: string[]) {
             return true;
         }
 
-                sender.coins -= amount;
+        sender.coins -= amount;
         target.coins += amount;
         sender.updatedAt = Date.now();
         target.updatedAt = Date.now();
@@ -4066,7 +3923,7 @@ bot.action(/^casino:cancel:(\d+)$/, async ctx => {
     if (!ctx.from || ctx.from.id !== Number(ctx.match[1])) return;
     await safeAnswerCbQuery(ctx, "🛑 لغو شد.");
     try {
-        await ctx.editMessageText("🎰 راند کازینو 🛑 لغو شد..", { parse_mode: "HTML" });
+        await ctx.editMessageText("🎰 راند کازینو 🛑 لغو شد.", { parse_mode: "HTML" });
     } catch {}
 });
 
@@ -4272,7 +4129,7 @@ bot.on(message("text"), async ctx => {
         return;
     }
 
-        const groupDice = clean.match(/^تاس\s+(.+)$/i);
+    const groupDice = clean.match(/^تاس\s+(.+)$/i);
     if (groupDice && !isPrivateChat(ctx)) {
         const wager = parseGameBet(groupDice[1]);
         if (!wager) {
@@ -4294,7 +4151,7 @@ bot.on(message("text"), async ctx => {
         return;
     }
 
-        const groupBowling = clean.match(/^(?:بولینگ|bowling|باولینگ)\s+(.+)$/i);
+    const groupBowling = clean.match(/^(?:بولینگ|bowling|باولینگ)\s+(.+)$/i);
     if (groupBowling && !isPrivateChat(ctx)) {
         const wager = parseGameBet(groupBowling[1]);
         if (!wager) {

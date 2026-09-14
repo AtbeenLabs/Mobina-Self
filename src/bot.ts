@@ -23,7 +23,9 @@ const DB_VERSION = 11;
 const STARTING_COINS = 100;
 const MIN_GAME_BET = 20;
 const COINS_PER_1000 = 20_000;
-const GAME_TTL_MS = 5 * 60 * 1000;
+const GAME_TTL_MS = 2 * 60 * 1000;
+const PLAYER_ACTION_TIMEOUT_MS = 2 * 60 * 1000;
+const COUNTDOWN_UPDATE_INTERVAL = 15 * 1000;
 const MAX_TRANSACTION_LOG = 500;
 const MAX_BALANCE = Number.MAX_SAFE_INTEGER;
 
@@ -135,6 +137,161 @@ async function withMutationLock<T>(fn: () => Promise<T>): Promise<T> {
     }
 }
 
+type GameTimer = { timeout: NodeJS.Timeout; interval?: NodeJS.Timeout; };
+const gameTimers = new Map<string, GameTimer>();
+
+function clearGameTimer(gameId: string) {
+    const t = gameTimers.get(gameId);
+    if (!t) return;
+    clearTimeout(t.timeout);
+    if (t.interval) clearInterval(t.interval);
+    gameTimers.delete(gameId);
+}
+
+function countdownLine(game: BaseGame): string {
+    if (!game.deadlineAt || game.status !== "playing") return "";
+    const remaining = Math.max(0, game.deadlineAt - Date.now());
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    const time = `${mins}:${String(secs).padStart(2, "0")}`;
+    const danger = remaining < 30000 ? " 🔴" : remaining < 60000 ? " 🟡" : "";
+    return `\n\n⏳ زمان باقی‌مانده: <b>${time}</b>${danger}`;
+}
+
+function withCountdown(game: BaseGame, text: string): string {
+    return text + countdownLine(game);
+}
+
+async function renderGameMessage(ctx: Context, game: BaseGame, baseText: string, extra?: any) {
+    game.lastBaseText = baseText;
+    saveDatabase(db);
+    await safeEdit(ctx, withCountdown(game, baseText), extra);
+}
+
+async function refreshCountdown(gameId: string) {
+    const game = db.games[gameId];
+    if (!game || game.status !== "playing" || !game.lastBaseText) return;
+    try {
+        await bot.telegram.editMessageText(
+            game.chatId,
+            game.messageId,
+            undefined,
+            withCountdown(game, game.lastBaseText),
+            { parse_mode: "HTML" }
+        );
+    } catch {}
+}
+
+function scheduleGameTimeout(game: BaseGame, phase: "waiting" | "playing") {
+    clearGameTimer(game.id);
+    const timeoutMs = phase === "waiting" ? GAME_TTL_MS : PLAYER_ACTION_TIMEOUT_MS;
+    game.deadlineAt = Date.now() + timeoutMs;
+    saveDatabase(db);
+
+    const timeout = setTimeout(() => { void handleGameTimeout(game.id, phase); }, timeoutMs);
+
+    let interval: NodeJS.Timeout | undefined;
+    if (phase === "playing") {
+        interval = setInterval(() => { void refreshCountdown(game.id); }, COUNTDOWN_UPDATE_INTERVAL);
+        (interval as any).unref?.();
+    }
+    gameTimers.set(game.id, { timeout, interval });
+}
+
+function findInactivePlayer(game: Game): number | null {
+    if (game.type === "coinflip") return null;
+    if (game.type === "rps") {
+        const g = game as RPSGame;
+        const c = Boolean(g.creatorChoice), o = Boolean(g.opponentChoice);
+        if (c && !o) return g.opponentId!;
+        if (!c && o) return g.creatorId;
+        if (!c && !o) return -1;
+        return null;
+    }
+    if (game.type === "tictactoe") return (game as TicTacToeGame).turn;
+    if (game.type === "dice") {
+        const g = game as DiceGame;
+        const c = g.creatorRoll != null, o = g.opponentRoll != null;
+        if (c && !o) return g.opponentId!;
+        if (!c && o) return g.creatorId;
+        if (!c && !o) return -1;
+        return null;
+    }
+    if (game.type === "dart" || game.type === "casino" || game.type === "bowling") {
+        const g = game as any;
+        const c = g.creatorRoll != null, o = g.opponentRoll != null;
+        if (c && !o) return g.opponentId!;
+        if (!c && o) return g.creatorId;
+        if (!c && !o) return -1;
+        return null;
+    }
+    return null;
+}
+
+async function handleGameTimeout(gameId: string, phase: "waiting" | "playing") {
+    const game = db.games[gameId];
+    if (!game || game.settled) { clearGameTimer(gameId); return; }
+
+    if (phase === "waiting" || game.status === "waiting") {
+        const creator = getStoredUser(game.creatorId);
+        refundGame(game);
+        delete db.games[gameId];
+        saveDatabase(db);
+        await safeEditMessageById(
+            game.chatId, game.messageId,
+            `⏰ <b>زمان تمام شد!</b>\n\n😴 کسی به بازی نپیوست...\n🪙 مبلغ شرط کامل به ${warmName(creator?.name || "سازنده")} برگشت.`,
+            { parse_mode: "HTML" }
+        );
+        clearGameTimer(gameId);
+        return;
+    }
+
+    const inactive = findInactivePlayer(game);
+    if (inactive === null) { clearGameTimer(gameId); return; }
+
+    if (inactive === -1) {
+        refundGame(game);
+        delete db.games[gameId];
+        saveDatabase(db);
+        await safeEditMessageById(
+            game.chatId, game.messageId,
+            `⏰ <b>زمان تمام شد!</b>\n\n😴 هیچ‌کدوم از بازیکنان حرکت نکردن...\n🪙 شرط هر دو نفر کامل برگشت.`,
+            { parse_mode: "HTML" }
+        );
+        clearGameTimer(gameId);
+        return;
+    }
+
+    const winnerId = inactive === game.creatorId ? game.opponentId! : game.creatorId;
+    const winner = getStoredUser(winnerId);
+    const loser = getStoredUser(inactive);
+    if (!winner || !loser) { clearGameTimer(gameId); return; }
+
+    const settled = settleWinner(game, winnerId);
+    if (!settled) {
+        refundGame(game);
+        delete db.games[gameId];
+        saveDatabase(db);
+        clearGameTimer(gameId);
+        return;
+    }
+
+    await safeEditMessageById(
+        game.chatId, game.messageId,
+        `⏰ <b>زمان تمام شد!</b>\n\n` +
+        `😴 <b>${warmName(loser.name)}</b> توی ۲ دقیقه حرکت نکرد و باخت!\n` +
+        `👑 <b>${warmName(winner.name)}</b> برنده شد 🎉\n\n` +
+        `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n` +
+        `🪙 موجودی برنده: <b>${copyNumber(winner.coins)}</b>\n\n` +
+        `${xpResultLine(winner, settled.winnerXp)}\n${xpResultLine(loser, settled.loserXp)}`,
+        { parse_mode: "HTML" }
+    );
+
+    delete db.games[gameId];
+    saveDatabase(db);
+    clearGameTimer(gameId);
+}
+
 const ACTIVE_GAME_STATUSES = new Set<GameStatus>(["waiting", "playing"]);
 
 type Stats = {
@@ -152,6 +309,7 @@ type Stats = {
     dartWins: number;
     guessWins: number;
     casinoWins: number;
+    bowlingWins: number;
 };
 
 type User = {
@@ -170,7 +328,7 @@ type User = {
 };
 
 type GameStatus = "waiting" | "playing" | "finished";
-type GameType = "coinflip" | "rps" | "tictactoe" | "dice" | "dart" | "casino" | "number_guess";
+type GameType = "coinflip" | "rps" | "tictactoe" | "dice" | "dart" | "casino" | "number_guess" | "bowling";
 type RPSChoice = "rock" | "paper" | "scissors";
 
 type BaseGame = {
@@ -188,6 +346,8 @@ type BaseGame = {
     opponentStakeHeld: boolean;
     createdAt: number;
     settled: boolean;
+    deadlineAt?: number;
+    lastBaseText?: string;
 };
 
 type CoinflipGame = BaseGame & { type: "coinflip" };
@@ -223,7 +383,13 @@ type CasinoGame = BaseGame & {
     opponentRoll?: number;
 };
 
-type Game = CoinflipGame | RPSGame | TicTacToeGame | DiceGame | DartGame | CasinoGame;
+type BowlingGame = BaseGame & {
+    type: "bowling";
+    creatorRoll?: number;
+    opponentRoll?: number;
+};
+
+type Game = CoinflipGame | RPSGame | TicTacToeGame | DiceGame | DartGame | CasinoGame | BowlingGame;
 
 type Transaction = {
     id: string;
@@ -261,20 +427,10 @@ type Database = {
 
 function emptyStats(): Stats {
     return {
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        games: 0,
-        winStreak: 0,
-        bestStreak: 0,
-        xp: 0,
-        coinflipWins: 0,
-        rpsWins: 0,
-        tttWins: 0,
-        diceWins: 0,
-        dartWins: 0,
-        guessWins: 0,
-        casinoWins: 0
+        wins: 0, losses: 0, draws: 0, games: 0, winStreak: 0, bestStreak: 0, xp: 0,
+        coinflipWins: 0, rpsWins: 0, tttWins: 0, diceWins: 0, dartWins: 0,
+        guessWins: 0, casinoWins: 0,
+        bowlingWins: 0
     };
 }
 
@@ -316,7 +472,8 @@ function sanitizeStats(value: any): Stats {
         diceWins: Math.max(0, safeInt(oldStats.diceWins)),
         dartWins: Math.max(0, safeInt(oldStats.dartWins)),
         guessWins: Math.max(0, safeInt(oldStats.guessWins)),
-        casinoWins: Math.max(0, safeInt(oldStats.casinoWins))
+        casinoWins: Math.max(0, safeInt(oldStats.casinoWins)),
+        bowlingWins: Math.max(0, safeInt(oldStats.bowlingWins))
     };
 }
 
@@ -828,6 +985,7 @@ function reserveOpponentStake(game: BaseGame, opponentId: number, opponentName: 
 
 function refundGame(game: Game) {
     if (game.settled) return false;
+    clearGameTimer(game.id);
 
     const creator = getStoredUser(game.creatorId);
     const creatorHeld = game.creatorStakeHeld;
@@ -860,6 +1018,7 @@ function settleWinner(game: Game, winnerId: number) {
     if (game.settled || game.status !== "playing" || !game.opponentId) return null;
     if (winnerId !== game.creatorId && winnerId !== game.opponentId) return null;
     if (!game.creatorStakeHeld || !game.opponentStakeHeld) return null;
+    clearGameTimer(game.id);
 
     const loserId = winnerId === game.creatorId ? game.opponentId : game.creatorId;
     const winner = getStoredUser(winnerId);
@@ -893,6 +1052,7 @@ function settleWinner(game: Game, winnerId: number) {
 
 function settleDraw(game: Game) {
     if (game.settled || game.status !== "playing" || !game.opponentId) return null;
+    clearGameTimer(game.id);
 
     const creator = getStoredUser(game.creatorId);
     const opponent = getStoredUser(game.opponentId);
@@ -960,6 +1120,7 @@ function addXp(user: User, delta: number, gameType: GameType, won: boolean) {
         if (gameType === "dart") user.stats.dartWins++;
         if (gameType === "number_guess") user.stats.guessWins++;
         if (gameType === "casino" as any) user.stats.casinoWins++;
+        if (gameType === "bowling" as any) user.stats.bowlingWins++;
     }
     user.updatedAt = Date.now();
     const after = levelSnapshot(user);
@@ -1047,6 +1208,7 @@ function expireGames() {
 
     for (const [id, game] of Object.entries(db.games)) {
         if (now - game.createdAt <= GAME_TTL_MS) continue;
+        clearGameTimer(id);
         refundGame(game);
         delete db.games[id];
         changed = true;
@@ -1122,7 +1284,8 @@ function topText() {
         `🎲 تاس: ${leaderLine(users, "diceWins")}`,
         `🎯 دارت: ${leaderLine(users, "dartWins")}`,
         `🎰 کازینو: ${leaderLine(users, "casinoWins")}`,
-        `🎯 حدس عدد: ${leaderLine(users, "guessWins")}`
+        `🎯 حدس عدد: ${leaderLine(users, "guessWins")}`,
+        `🎳 بولینگ: ${leaderLine(users, "bowlingWins")}`
     ].join("\n");
 }
 
@@ -1245,7 +1408,9 @@ function waitingGameText(game: BaseGame) {
                     ? "🎯 نبرد دارت"
                     : game.type === "casino"
                         ? "🎰 نبرد کازینو"
-                        : "❌⭕ دوز";
+                        : game.type === "bowling"
+                            ? "🎳 نبرد بولینگ"
+                            : "❌⭕ دوز";
 
     return [
         `<b>${title}</b>`,
@@ -1354,12 +1519,14 @@ async function createGame(ctx: Context, type: GameType, wager: number) {
                     ? { ...common, type: "dart" }
                     : type === "casino"
                         ? { ...common, type: "casino" }
-                        : {
-                        ...common,
-                        type: "tictactoe",
-                        board: Array(9).fill(" "),
-                        turn: user.id
-                    };
+                        : type === "bowling"
+                            ? { ...common, type: "bowling" }
+                            : {
+                                ...common,
+                                type: "tictactoe",
+                                board: Array(9).fill(" "),
+                                turn: user.id
+                            };
 
     if (!reserveCreatorStake(game)) {
         await replyWarm(ctx, "😕 <b>ثبت بازی انجام نشد.</b>\n\n🪙 هیچ مبلغی از حسابت کم نشده.\n🔁 یه بار دیگه امتحان کن، این دفعه می‌ریم برای برد! 🔥", "game", { parse_mode: "HTML" });
@@ -1377,6 +1544,7 @@ async function createGame(ctx: Context, type: GameType, wager: number) {
         });
         game.messageId = sent.message_id;
         saveDatabase(db);
+        scheduleGameTimeout(game, "waiting");   // 👈 جدید
     } catch (error) {
         console.error("create game message error:", error);
         refundGame(game);
@@ -1398,7 +1566,7 @@ async function updateRps(ctx: Context, game: RPSGame) {
     const vibe = ready === 0 ? "😈 هر دوتون انتخابتون رو بزنید؛ ببینیم قهرمان این راند کیه! 🔥"
         : ready === 1 ? "👀 انتخاب نفر اول ثبت شد! 👀 حالا نوبت نفر دومه."
         : "⚡ هر دو انتخاب ثبت شد! ⚡ حالا وقت اعلام نتیجه‌ست...";
-    await safeEdit(ctx,
+    await renderGameMessage(ctx, game,
         `✊ <b>نبرد سنگ، کاغذ، قیچی</b>\n\n` +
         `👤 ${warmName(game.creatorName)} ➜ ${game.creatorChoice ? "✅ انتخاب ثبت شد" : "⏳ هنوز انتخاب نکرده"}\n` +
         `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${game.opponentChoice ? "✅ انتخاب ثبت شد" : "⏳ هنوز انتخاب نکرده"}\n\n` +
@@ -1436,7 +1604,7 @@ function tttKeyboard(game: TicTacToeGame) {
 async function updateTtt(ctx: Context, game: TicTacToeGame) {
     if (!game.opponentName) return;
     const turnName = game.turn === game.creatorId ? game.creatorName : game.opponentName;
-    await safeEdit(ctx,
+    await renderGameMessage(ctx, game,
         `❌⭕ <b>نبرد دوز</b> • 🔥 راند داغه!\n\n` +
         `❌ ${warmName(game.creatorName)}\n⭕ ${warmName(game.opponentName)}\n\n` +
         `${tttBoard(game.board)}\n\n` +
@@ -1572,10 +1740,12 @@ bot.start(async ctx => {
 
     await sendStickerSafe(ctx, created ? "welcome" : "game");
 
-    const mainKeyboard = Markup.inlineKeyboard([
-        [Markup.button.webApp("🚀 باز کردن مینی‌اپ مبینا", WEBAPP_URL)],
-        ...(privateKeyboardFor(user.id).reply_markup as any).inline_keyboard
-    ]);
+    const rows: any[][] = [];
+    if (WEBAPP_URL) {
+        rows.push([Markup.button.webApp("🚀 باز کردن مینی‌اپ مبینا", WEBAPP_URL)]);
+    }
+    rows.push(...(privateKeyboardFor(user.id).reply_markup as any).inline_keyboard);
+    const mainKeyboard = Markup.inlineKeyboard(rows);
 
     await ctx.reply(hello, {
         parse_mode: "HTML",
@@ -2086,6 +2256,7 @@ function gameTypeTitle(type: GameType) {
     if (type === "dice") return "🎲 تاس";
     if (type === "dart") return "🎯 دارت";
     if (type === "casino") return "🎰 کازینو";
+    if (type === "bowling") return "🎳 بولینگ";
     return "❌⭕ دوز";
 }
 
@@ -2140,6 +2311,94 @@ function casinoGroupButtons(game: CasinoGame) {
     ]);
 }
 
+function bowlingGroupButtons(game: BowlingGame) {
+    return Markup.inlineKeyboard([
+        [styledCallback("🎳 پرتاب توپ", `game:bowling-roll:${game.id}`, "success")],
+        [styledCallback("❌ لغو", `game:cancel:${game.id}`, "danger")]
+    ]);
+}
+
+async function rollGroupBowling(ctx: any, game: BowlingGame) {
+    if (!ctx.from || !game.opponentId || game.status !== "playing" || game.settled) return;
+    if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
+        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست.", { show_alert: true });
+        return;
+    }
+
+    const isCreator = ctx.from.id === game.creatorId;
+    const current = isCreator ? game.creatorRoll : game.opponentRoll;
+    if (current != null) {
+        await safeAnswerCbQuery(ctx, "🎳 توپت رو قبلاً پرت کردی 😄", { show_alert: true });
+        return;
+    }
+
+    try {
+        const msg = await ctx.telegram.sendDice(game.chatId, { emoji: "🎳" });
+        const value = Number(msg?.dice?.value);
+        if (!Number.isInteger(value) || value < 1 || value > 6) {
+            await safeAnswerCbQuery(ctx, "⚠️ پرتاب نامعتبر بود؛ دوباره امتحان کن.", { show_alert: true });
+            return;
+        }
+
+        if (isCreator) game.creatorRoll = value;
+        else game.opponentRoll = value;
+        saveDatabase(db);
+        await safeAnswerCbQuery(ctx, "🎳 پرتاب ثبت شد!");
+
+        if (game.creatorRoll == null || game.opponentRoll == null) {
+            await renderGameMessage(ctx, game,
+                `🎳 <b>نبرد بولینگ</b>\n\n` +
+                `👤 ${warmName(game.creatorName)} ➜ ${game.creatorRoll == null ? "⏳ منتظر پرتاب" : `✅ ${game.creatorRoll}`}\n` +
+                `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${game.opponentRoll == null ? "⏳ منتظر پرتاب" : `✅ ${game.opponentRoll}`}\n\n` +
+                `🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n` +
+                `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
+                `👇 هر دو پرتاب کنن`,
+                { parse_mode: "HTML", ...bowlingGroupButtons(game) }
+            );
+            return;
+        }
+
+        const a = Number(game.creatorRoll), b = Number(game.opponentRoll);
+        let winnerId: number | null = null;
+        if (a === b) winnerId = null;
+        else if (a > b) winnerId = game.creatorId;
+        else winnerId = game.opponentId!;
+
+        if (winnerId == null) {
+            const settled = settleDraw(game);
+            if (!settled) return;
+            await safeAnswerCbQuery(ctx, "🤝 مساوی شد");
+            await safeEdit(ctx,
+                `🎳 <b>بولینگ مساوی شد!</b>\n\n` +
+                `👤 ${warmName(game.creatorName)}: <b>${a}</b>\n` +
+                `👤 ${warmName(game.opponentName || "بازیکن دوم")}: <b>${b}</b>\n\n` +
+                `🪙 شرط هر دو نفر کامل برگشت.\n\n` +
+                `${xpResultLine(settled.creator, settled.creatorXp)}\n${xpResultLine(settled.opponent, settled.opponentXp)}`,
+                { parse_mode: "HTML" }
+            );
+        } else {
+            const settled = settleWinner(game, winnerId);
+            if (!settled) return;
+            const special = settled.winner.id === game.creatorId ? a === 6 : b === 6;
+            await sendStickerSafe(ctx, "win");
+            await safeEdit(ctx,
+                `🎳 <b>نبرد بولینگ تموم شد!</b>\n\n` +
+                `👑 <b>برنده: ${warmName(settled.winner.name)}</b> • <b>${settled.winner.id === game.creatorId ? a : b}</b>${special ? "\n🎳 استرایک! همه رو انداختی!" : ""}\n` +
+                `😵 <b>بازنده: ${warmName(settled.loser.name)}</b> • <b>${settled.loser.id === game.creatorId ? a : b}</b>\n\n` +
+                `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
+                `${xpResultLine(settled.winner, settled.winnerXp)}\n${xpResultLine(settled.loser, settled.loserXp)}`,
+                { parse_mode: "HTML" }
+            );
+        }
+        clearGameTimer(game.id);
+        delete db.games[game.id];
+        saveDatabase(db);
+    } catch (error) {
+        console.error("group bowling error:", error);
+        await safeAnswerCbQuery(ctx, "⚠️ خطای موقت؛ چیزی از حسابت کم نشد.", { show_alert: true });
+    }
+}
+
 async function rollGroupDice(ctx: any, game: DiceGame) {
     if (!ctx.from || !game.opponentId || game.status !== "playing" || game.settled) return;
 
@@ -2151,9 +2410,9 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
     const isCreator = ctx.from.id === game.creatorId;
     const currentMode = isCreator ? game.creatorMode : game.opponentMode;
     const currentExact = isCreator ? game.creatorExact : game.opponentExact;
-    if (!currentMode) {
+        if (!currentMode) {
         await safeAnswerCbQuery(ctx, "اول پیش‌بینی خودت رو انتخاب کن؛ بعد تاس رو بنداز.", { show_alert: true });
-        await safeEdit(ctx,
+        await renderGameMessage(ctx, game,
             `🎲 <b>نبرد تاس</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
             `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${diceModeText(game.opponentMode, game.opponentExact)}\n\n` +
@@ -2187,7 +2446,7 @@ async function rollGroupDice(ctx: any, game: DiceGame) {
         await safeAnswerCbQuery(ctx, "🎲 تاس ثبت شد! حالا بریم سراغ نتیجه 🔥");
 
         if (game.creatorRoll == null || game.opponentRoll == null) {
-            await safeEdit(ctx,
+            await renderGameMessage(ctx, game,
                 `🎲 <b>نبرد تاس</b>\n\n` +
                 `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}  |  ${game.creatorRoll == null ? "⏳ منتظر تاس" : `✅ ${game.creatorRoll}`}\n` +
                 `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${diceModeText(game.opponentMode, game.opponentExact)}  |  ${game.opponentRoll == null ? "⏳ منتظر تاس" : `✅ ${game.opponentRoll}`}\n\n` +
@@ -2303,7 +2562,7 @@ async function rollGroupDart(ctx: any, game: DartGame) {
         saveDatabase(db);
         await safeAnswerCbQuery(ctx, "✅ ثبت شد! بزن بریم 🔥");
         if (game.creatorRoll == null || game.opponentRoll == null) {
-            await safeEdit(ctx,
+            await renderGameMessage(ctx, game,
                 `🎯 <b>نبرد دارت</b>\n\n` +
                 `👤 ${warmName(game.creatorName)} ➜ ${game.creatorRoll == null ? "⏳ منتظر" : `✅ ${game.creatorRoll}`}\n` +
                 `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${game.opponentRoll == null ? "⏳ منتظر" : `✅ ${game.opponentRoll}`}\n\n` +
@@ -2373,7 +2632,7 @@ async function rollGroupCasino(ctx: any, game: CasinoGame) {
         const creatorReady = game.creatorRoll != null;
         const opponentReady = game.opponentRoll != null;
         if (!creatorReady || !opponentReady) {
-            await safeEdit(ctx,
+            await renderGameMessage(ctx, game,
                 `🎰 <b>نبرد کازینو</b>\n\n` +
                 `👤 ${warmName(game.creatorName)} ➜ ${creatorReady ? "✅ آماده" : "⏳ در انتظار اسپین"}\n` +
                 `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${opponentReady ? "✅ آماده" : "⏳ در انتظار اسپین"}\n\n` +
@@ -2456,9 +2715,9 @@ bot.action(/^gd:mode:(.+):(even|odd|exact)$/, async ctx => {
     const isCreator = ctx.from.id === game.creatorId;
     const mode = ctx.match[2] as DicePredictionMode;
 
-    if (mode === "exact") {
+        if (mode === "exact") {
         await safeAnswerCbQuery(ctx, "عدد دقیق رو انتخاب کن");
-        await safeEdit(ctx,
+        await renderGameMessage(ctx, game,
             `🎲 <b>پیش‌بینی دقیق</b>\n\n🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n👇 عدد ۱ تا ۶ را انتخاب کن`,
             { parse_mode: "HTML", ...diceGroupExactKeyboard(game) }
         );
@@ -2468,7 +2727,7 @@ bot.action(/^gd:mode:(.+):(even|odd|exact)$/, async ctx => {
     if (isCreator) game.creatorMode = mode; else game.opponentMode = mode;
     saveDatabase(db);
     await safeAnswerCbQuery(ctx, "پیش‌بینی ✅ ثبت شد! بزن بریم 🔥");
-    await safeEdit(ctx,
+    await renderGameMessage(ctx, game,
         `🎲 <b>نبرد تاس</b>\n\n` +
         `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
         `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${diceModeText(game.opponentMode, game.opponentExact)}\n\n` +
@@ -2516,7 +2775,7 @@ bot.action(/^gd:back:(.+)$/, async ctx => {
     const game = db.games[ctx.match[1]] as DiceGame | undefined;
     if (!game || game.type !== "dice" || game.status !== "playing" || game.chatId !== ctx.chat.id) return;
     await safeAnswerCbQuery(ctx);
-    await safeEdit(ctx,
+    await renderGameMessage(ctx, game,
         `🎲 <b>پیش‌بینی تاس</b>\n\n🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n👇 نوع پیش‌بینی را انتخاب کن`,
         { parse_mode: "HTML", ...diceGroupPredictionKeyboard(game) }
     );
@@ -2554,6 +2813,19 @@ bot.action(/^game:dart-roll:(.+)$/, async ctx => {
     await withMutationLock(() => rollGroupDart(ctx, game));
 });
 
+bot.action(/^game:bowling-roll:(.+)$/, async ctx => {
+    const game = db.games[ctx.match[1]] as BowlingGame | undefined;
+    if (!game || game.type !== "bowling" || !ctx.chat || game.chatId !== ctx.chat.id) {
+        await safeAnswerCbQuery(ctx, "⚠️ این بازی فعال نیست.", { show_alert: true });
+        return;
+    }
+    if (ctx.from.id !== game.creatorId && ctx.from.id !== game.opponentId) {
+        await safeAnswerCbQuery(ctx, "⛔ این بازی برای تو نیست.", { show_alert: true });
+        return;
+    }
+    await withMutationLock(() => rollGroupBowling(ctx, game));
+});
+
 bot.action(/^game:join:(.+)$/, async ctx => {
     if (!ctx.from || !ctx.chat) return;
     await withMutationLock(async () => {
@@ -2587,6 +2859,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     game.status = "playing";
     game.createdAt = Date.now();
     saveDatabase(db);
+    scheduleGameTimeout(game, "playing");
     await safeAnswerCbQuery(ctx, "🔥 بزن بریم!! بازی شروع شد");
 
     if (game.type === "coinflip") {
@@ -2603,9 +2876,8 @@ bot.action(/^game:join:(.+)$/, async ctx => {
         return;
     }
 
-    if (game.type === "dice") {
-        await safeEdit(
-            ctx,
+        if (game.type === "dice") {
+        await renderGameMessage(ctx, game,
             `🎲 <b>نبرد تاس</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ${diceModeText(game.creatorMode, game.creatorExact)}\n` +
             `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ${diceModeText(game.opponentMode, game.opponentExact)}\n\n` +
@@ -2619,8 +2891,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     }
 
     if (game.type === "dart") {
-        await safeEdit(
-            ctx,
+        await renderGameMessage(ctx, game,
             `🎯 <b>نبرد دارت</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ⏳\n` +
             `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ⏳\n\n` +
@@ -2632,8 +2903,7 @@ bot.action(/^game:join:(.+)$/, async ctx => {
     }
 
     if (game.type === "casino") {
-        await safeEdit(
-            ctx,
+        await renderGameMessage(ctx, game,
             `🎰 <b>نبرد کازینو</b>\n\n` +
             `👤 ${warmName(game.creatorName)} ➜ ⏳\n` +
             `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ⏳\n\n` +
@@ -2641,6 +2911,19 @@ bot.action(/^game:join:(.+)$/, async ctx => {
             `🏆 جایزه‌ی راند: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
             `👇 هر دو نفر اسپین خودشون رو بزنن`,
             { parse_mode: "HTML", ...casinoGroupButtons(game as CasinoGame) }
+        );
+        return;
+    }
+
+        if (game.type === "bowling") {
+        await renderGameMessage(ctx, game,
+            `🎳 <b>نبرد بولینگ</b>\n\n` +
+            `👤 ${warmName(game.creatorName)} ➜ ⏳\n` +
+            `👤 ${warmName(game.opponentName || "بازیکن دوم")} ➜ ⏳\n\n` +
+            `🪙 شرط: <b>${copyNumber(game.wager)} MBN</b>\n` +
+            `🏆 جایزه: <b>${copyNumber(game.wager * 2)} MBN</b>\n\n` +
+            `👇 هر دو نفر پرتاب کنن`,
+            { parse_mode: "HTML", ...bowlingGroupButtons(game as BowlingGame) }
         );
         return;
     }
@@ -4011,6 +4294,17 @@ bot.on(message("text"), async ctx => {
         return;
     }
 
+        const groupBowling = clean.match(/^(?:بولینگ|bowling|باولینگ)\s+(.+)$/i);
+    if (groupBowling && !isPrivateChat(ctx)) {
+        const wager = parseGameBet(groupBowling[1]);
+        if (!wager) {
+            await replyWarm(ctx, `😅 <b>مبلغ شرط قابل قبول نیست.</b>\nمثلاً: <code>بولینگ 100</code> 🎳`, "dice", { parse_mode: "HTML" });
+            return;
+        }
+        await createGame(ctx, "bowling", wager);
+        return;
+    }
+
     const groupCasino = clean.match(/^(?:کازینو|اسلات|slot)\s+(.+)$/i);
     if (groupCasino && !isPrivateChat(ctx)) {
         const wager = parseGameBet(groupCasino[1]);
@@ -4148,7 +4442,8 @@ function publicProfile(user: User) {
             diceWins: user.stats.diceWins,
             dartWins: user.stats.dartWins,
             casinoWins: user.stats.casinoWins,
-            guessWins: user.stats.guessWins
+            guessWins: user.stats.guessWins,
+            bowlingWins: user.stats.bowlingWins
         }
     };
 }
@@ -4172,7 +4467,8 @@ function leaderboardList(type: string) {
             dice: "diceWins",
             dart: "dartWins",
             casino: "casinoWins",
-            guess: "guessWins"
+            guess: "guessWins",
+            bowling: "bowlingWins"
         };
         const key = keyMap[type];
         if (!key) return null;
